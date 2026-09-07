@@ -19,9 +19,13 @@ async function main(): Promise<void> {
   }
 
   const client = postgres(databaseUrl, { max: 1 });
-  console.log('Dropping and recreating schema "public" ...');
-  await client.unsafe('DROP SCHEMA public CASCADE');
+  console.log('Dropping and recreating schemas "public" and "drizzle" ...');
+  await client.unsafe('DROP SCHEMA IF EXISTS public CASCADE');
   await client.unsafe('CREATE SCHEMA public');
+  // drizzle-kit records applied migrations in its own `drizzle` schema. Leaving
+  // it behind makes the following db:migrate a no-op against an empty public
+  // schema, and db:seed then fails with 42P01 undefined_table.
+  await client.unsafe('DROP SCHEMA IF EXISTS drizzle CASCADE');
   console.log('Schema reset. Run db:migrate && db:seed next.');
   await client.end();
 }
