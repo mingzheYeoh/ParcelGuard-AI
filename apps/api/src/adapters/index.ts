@@ -1,5 +1,6 @@
 import type { AddressSummary, Evidence, IntegrationMode, Order } from '@parcelguard/contracts';
 import { config } from '../config.js';
+import { createAzureModelAdapter } from './azureModelAdapter.js';
 
 /**
  * Adapter boundaries shipped by Task 5 so Tasks 7 (Azure) and 8 (Terminal 3)
@@ -24,7 +25,12 @@ export type ToolResult =
 
 export type ModelDecision =
   | { kind: 'tool_call'; call: ToolCall }
-  | { kind: 'message'; content: string };
+  /**
+   * `refusal` marks a decline, not a clarifying question — PLAN.md §3
+   * journey E records the former as an `agent_refusal` action and the latter
+   * as nothing at all. Adapters that cannot tell them apart leave it unset.
+   */
+  | { kind: 'message'; content: string; refusal?: boolean };
 
 export interface ModelInput {
   /** The user's latest message. Prior turns are not replayed in P0. */
@@ -152,4 +158,18 @@ export function createLocalTerminal3Adapter(): Terminal3Adapter {
       return { source: 'local', agent_did: null, provider_reference: null, verified: false };
     },
   };
+}
+
+/**
+ * Picks the model adapter from MODEL_PROVIDER. Anything other than
+ * `azure_openai` gets the deterministic mock, which reports mode "mock" — the
+ * UI must never label a stand-in as live (TASKS.md §2 rule 5).
+ *
+ * azureModelAdapter.ts imports only *types* from this module, so referencing
+ * it here creates no runtime cycle.
+ */
+export function createModelAdapter(): ModelAdapter {
+  return config.modelProvider() === 'azure_openai'
+    ? createAzureModelAdapter()
+    : createMockModelAdapter();
 }

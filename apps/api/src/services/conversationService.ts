@@ -8,6 +8,7 @@ import { apiError } from '../http/errors.js';
 import type { ModelAdapter, ToolResult } from '../adapters/index.js';
 import { listAddresses } from '../repositories/addressRepository.js';
 import { executeTool } from './toolGateway.js';
+import { recordAction } from './auditService.js';
 import { requireOwnedConversation } from './auditService.js';
 import type { SessionContext } from './sessionService.js';
 
@@ -147,6 +148,25 @@ async function runAgentLoop(
 
     if (decision.kind === 'message') {
       assistantText = decision.content;
+      if (decision.refusal) {
+        // PLAN.md §3 journey E: a decline is an auditable event. A clarifying
+        // question is not, so adapters only set this for an actual refusal —
+        // and nothing here invents an action id for the card (Design.md §8.3).
+        const action = await recordAction(db, {
+          conversationId,
+          type: 'agent_refusal',
+          outcome: 'denied',
+          reasonCode: 'AGENT_REFUSED',
+          summary: 'The assistant declined the request',
+          evidence: {
+            source: 'local',
+            agent_did: null,
+            provider_reference: null,
+            verified: false,
+          },
+        });
+        actionIds.push(action.id);
+      }
       break;
     }
     if (toolCalls >= MAX_TOOL_CALLS) break;

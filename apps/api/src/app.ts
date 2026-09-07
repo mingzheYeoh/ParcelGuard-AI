@@ -6,7 +6,7 @@ import { ApiError } from './http/errors.js';
 import { assertOrigin, registerRoutes } from './routes/index.js';
 import {
   createLocalTerminal3Adapter,
-  createMockModelAdapter,
+  createModelAdapter,
   type ModelAdapter,
   type Terminal3Adapter,
 } from './adapters/index.js';
@@ -45,7 +45,7 @@ export function buildApp(
   registerRoutes(app, {
     // Lazy: a missing DATABASE_URL must not stop GET /health from answering.
     getDb: () => deps?.db ?? getDb(),
-    model: deps?.model ?? createMockModelAdapter(),
+    model: deps?.model ?? createModelAdapter(),
     terminal3: deps?.terminal3 ?? createLocalTerminal3Adapter(),
   });
 
@@ -58,6 +58,9 @@ export function buildApp(
 
   app.setErrorHandler((error, request, reply) => {
     if (error instanceof ApiError) {
+      if (error.retryAfterSeconds !== undefined) {
+        reply.header('retry-after', String(error.retryAfterSeconds));
+      }
       reply.status(error.status).send({
         error: { code: error.code, message: error.message, retryable: error.retryable },
         request_id: request.id,

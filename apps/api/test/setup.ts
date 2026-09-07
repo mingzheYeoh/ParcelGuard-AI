@@ -14,5 +14,9 @@ if (!process.env.DATABASE_URL) {
 process.env.SESSION_SECRET ??= 'test_session_secret_at_least_16_chars';
 process.env.APP_ORIGIN ??= 'http://localhost:5173';
 process.env.DEMO_MODE ??= 'true';
-process.env.MODEL_PROVIDER ??= 'mock';
+// Forced, not defaulted: apps/api/.env may set MODEL_PROVIDER=azure_openai for
+// local development, and these tests assert policy and state-machine
+// behaviour, not model behaviour. Letting them reach Azure would make the
+// suite slow, non-deterministic, and billable.
+process.env.MODEL_PROVIDER = 'mock';
 process.env.TERMINAL3_MODE ??= 'mock';
