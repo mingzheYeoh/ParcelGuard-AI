@@ -43,7 +43,9 @@ export interface ModelAdapter {
 }
 
 const ORDER_ID = /\bORD-\d{3,}\b/i;
-const CHANGE_INTENT = /\b(change|update|move|switch|redirect|deliver)\b/i;
+// `send` is in the list because Design.md §5.4's suggested chip is
+// "Send ORD-1002 to my office instead." — the demo's own copy must work.
+const CHANGE_INTENT = /\b(change|update|move|switch|send|redirect|deliver)\b/i;
 const ADDRESS_WORD = /\b(address|deliver|shipping)\b/i;
 
 /**
@@ -74,7 +76,15 @@ export function createMockModelAdapter(): ModelAdapter {
       }
 
       const orderId = userMessage.match(ORDER_ID)?.[0]?.toUpperCase();
-      const wantsChange = CHANGE_INTENT.test(userMessage) && ADDRESS_WORD.test(userMessage);
+      // Plain substring match, not a RegExp: a label is data (it could contain
+      // regex metacharacters) and `\b` inside a template literal is a
+      // backspace character, not a word boundary.
+      const haystack = userMessage.toLowerCase();
+      const target = addresses.find((address) => haystack.includes(address.label.toLowerCase()));
+      // Naming a saved address ("to my office") is an address signal on its
+      // own; requiring the literal word "address" rejected natural phrasing.
+      const wantsChange =
+        CHANGE_INTENT.test(userMessage) && (ADDRESS_WORD.test(userMessage) || target !== undefined);
 
       if (wantsChange) {
         if (!orderId) {
@@ -84,13 +94,6 @@ export function createMockModelAdapter(): ModelAdapter {
               'Which order should I update? Tell me the order number, for example ORD-1002.',
           };
         }
-        // Plain substring match, not a RegExp: a label is data (it could
-        // contain regex metacharacters) and `\b` inside a template literal is
-        // a backspace character, not a word boundary.
-        const haystack = userMessage.toLowerCase();
-        const target = addresses.find((address) =>
-          haystack.includes(address.label.toLowerCase()),
-        );
         if (!target) {
           const labels = addresses.map((address) => address.label).join(' or ');
           return {

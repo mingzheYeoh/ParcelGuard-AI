@@ -38,10 +38,23 @@ The "Done when" scenarios, each an assertion in `apps/api/test/api.test.ts`:
 
 ## Not done / blocked
 
-- **The end-to-end half of "Done when" is not verified yet**: "the frontend from Task 3 runs with `VITE_API_MODE=live` against the local API". Task 3 is being built in parallel; the check will be run and recorded once both land. Nothing in the API blocks it — `pnpm dev` serves the real endpoints on :3001 behind the Vite `/api` proxy today.
+- ~~The end-to-end half of "Done when" is not verified yet.~~ **Done** — see "End-to-end with Task 3" below.
 - **One bug found and fixed during testing, worth knowing about**: the mock model matched saved-address labels with ``new RegExp(`\b${label}\b`)``. Inside a template literal `\b` is a **backspace character**, not a word boundary, so no address ever matched and every address-change request fell through to "which address?". Replaced with a lowercase substring check — a label is data and could contain regex metacharacters anyway.
 - `REQUEST_IN_PROGRESS` on concurrent messages is implemented as a conditional UPDATE but is not covered by a test; a deterministic test needs two overlapping in-flight requests. The single-request paths that set and release the flag are covered.
 - Session expiry is honoured on read (`sessions.expires_at`) but nothing sets it — demo sessions currently live until the row is deleted.
+
+### End-to-end with Task 3 (both tasks' "Done when")
+
+Ran on a local merge of `task-5-api-core` and `task-3-frontend`: this API on :3001 against local PostgreSQL, the frontend with `VITE_API_MODE=live` on :5173 through the Vite `/api` proxy.
+
+- `POST /api/v1/demo/session` → 200, real signed `pg_session` cookie (`HttpOnly; SameSite=Lax`)
+- `GET /api/v1/orders` → the two owned orders, straight from PostgreSQL
+- Chat → proposal card → Confirm → success, then verified in the database: `ORD-1002.address_ref = addr_alex_office`, `version` 1 → 2, proposal `succeeded`, action `address_change/allowed/ADDRESS_UPDATED` with evidence `{source: local, verified: false}`, stored idempotency response present
+
+**Two bugs the live run found, both fixed here:**
+
+1. `src/server.ts` never loaded dotenv, so `pnpm --filter api dev` crashed with "SESSION_SECRET must be set" even though `apps/api/.env` had it. Only the scripts imported `dotenv/config`. The import now sits in `server.ts` — the local-only entry point — so `app.ts` still has no dotenv dependency for Vercel.
+2. The mock model refused Design.md §5.4's own suggested chip, "Send ORD-1002 to my office instead.": its intent vocabulary had no `send`, and it required the literal word "address". Naming a saved address now counts as the address signal. The frontend's MSW mock had a looser vocabulary, so mock and live disagreed on the demo's happy path.
 
 ## Contract change requests
 
