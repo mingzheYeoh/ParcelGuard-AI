@@ -5,7 +5,7 @@
   "description": "ParcelGuard AI — AI order-support assistant with enforced permissions (monorepo root)",
   "packageManager": "pnpm@11.22.0",
   "engines": {
-    "node": ">=20.0.0"
+    "node": "22.x"
   },
   "scripts": {
     "build": "pnpm -r build",

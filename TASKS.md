@@ -27,7 +27,7 @@ Agents cannot create accounts, accept terms of service, or obtain credits. The h
 
 | Tool | Version | Why |
 |---|---|---|
-| Node.js | 20 LTS or 22 LTS (must match the Vercel project's Node setting) | Frontend + backend runtime |
+| Node.js | **22.x** (pinned in `.nvmrc` and root `package.json` `engines.node`; Vercel honors `engines` over the dashboard default) | Frontend + backend runtime |
 | pnpm | 9.x | Workspace monorepo |
 | Git | any recent | Version control |
 | Vercel CLI (`npm i -g vercel`) | latest | `vercel link`, `vercel env pull`, `vercel dev`, `vercel --prod` |
@@ -294,7 +294,7 @@ Done when: at least one confirm produces provider evidence locally; the Vercel P
 Do:
 1. Set every Section 0.3 server variable for *Preview* and *Production* in the Vercel project. Confirm `DATABASE_URL` comes from the Marketplace integration.
 2. Run `db:migrate` and `db:seed` against the Preview database from a local shell with `vercel env pull`.
-3. Set the project Node version to match `.nvmrc`.
+3. Confirm the deployment log shows Node 22.x (from `engines.node`); if not, set the dashboard Node version to 22.x.
 4. Open a PR; verify the automatic Preview deployment builds and the health endpoint reports honest modes.
 5. Set `APP_ORIGIN` to the Preview URL (or use `VERCEL_URL` derivation documented in code) so Origin checks pass.
 
