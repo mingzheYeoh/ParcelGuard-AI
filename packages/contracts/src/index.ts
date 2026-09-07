@@ -63,6 +63,10 @@ export type EvidenceSource = z.infer<typeof evidenceSourceSchema>;
  * "404 outside demo mode" response on `POST /demo/session` (§7.1 table names
  * the status code but not a code string; this name follows the same
  * SCREAMING_SNAKE_CASE convention as every other code in §7.6).
+ *
+ * `INTERNAL_ERROR` (500) covers an unexpected server fault. Without it a
+ * handler that throws something unforeseen has no truthful code to put in the
+ * envelope and has to borrow one that means something else.
  */
 export const errorCodeSchema = z.enum([
   'DEMO_MODE_DISABLED',
@@ -82,6 +86,7 @@ export const errorCodeSchema = z.enum([
   'TERMINAL3_UNAVAILABLE',
   'MODEL_TIMEOUT',
   'ACTION_OUTCOME_UNKNOWN',
+  'INTERNAL_ERROR',
 ]);
 export type ErrorCode = z.infer<typeof errorCodeSchema>;
 

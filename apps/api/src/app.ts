@@ -68,9 +68,9 @@ export function buildApp(
     // Anything unhandled is logged server-side and reported without internals:
     // no stack traces, no driver messages, no other customers' data (PLAN.md §7).
     request.log.error({ err: error }, 'unhandled error');
-    reply.status(502).send({
+    reply.status(500).send({
       error: {
-        code: 'RESOURCE_UNAVAILABLE',
+        code: 'INTERNAL_ERROR',
         message: 'The request could not be completed',
         retryable: false,
       },
