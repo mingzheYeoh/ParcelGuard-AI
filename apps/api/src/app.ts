@@ -1,11 +1,22 @@
+import { randomUUID } from 'node:crypto';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
-import { API_BASE_PATH, type HealthResponse } from '@parcelguard/contracts';
+import cookie from '@fastify/cookie';
+import { config } from './config.js';
+import { ApiError } from './http/errors.js';
+import { assertOrigin, registerRoutes } from './routes/index.js';
+import {
+  createLocalTerminal3Adapter,
+  createMockModelAdapter,
+  type ModelAdapter,
+  type Terminal3Adapter,
+} from './adapters/index.js';
+import { getDb, type Database } from './db/index.js';
 
-let requestCounter = 0;
-
-function nextRequestId(): string {
-  requestCounter += 1;
-  return `req_${Date.now().toString(36)}_${requestCounter.toString(36)}`;
+export interface AppDeps {
+  /** Injected by tests; production resolves the pooled singleton lazily. */
+  db?: Database;
+  model?: ModelAdapter;
+  terminal3?: Terminal3Adapter;
 }
 
 /**
@@ -13,22 +24,58 @@ function nextRequestId(): string {
  * - Local development: src/server.ts calls buildApp().listen({ port: 3001 }).
  * - Vercel: api/index.ts (Task 6) wraps this same instance in a Function handler.
  */
-export function buildApp(options: FastifyServerOptions = {}): FastifyInstance {
+export function buildApp(
+  options: FastifyServerOptions & { deps?: AppDeps } = {},
+): FastifyInstance {
+  const { deps, ...fastifyOptions } = options;
+
   const app = Fastify({
-    logger: options.logger ?? true,
-    ...options,
+    logger: fastifyOptions.logger ?? true,
+    // PLAN.md §7: request_id is echoed in every envelope, success or error.
+    genReqId: () => `req_${randomUUID()}`,
+    ...fastifyOptions,
   });
 
-  // Placeholder health route (Task 1). Real IntegrationStatus wiring lands in
-  // Task 5 (backend core) / Task 7 / Task 8; modes stay honest ("unavailable")
-  // until an adapter is actually configured.
-  app.get(`${API_BASE_PATH}/health`, async () => {
-    const data: HealthResponse = {
-      api: 'ok',
-      model: 'unavailable',
-      terminal3: 'unavailable',
-    };
-    return { data, request_id: nextRequestId() };
+  app.register(cookie, { secret: config.sessionSecret() });
+
+  app.addHook('preHandler', async (request, reply) => {
+    assertOrigin(request, reply);
+  });
+
+  registerRoutes(app, {
+    // Lazy: a missing DATABASE_URL must not stop GET /health from answering.
+    getDb: () => deps?.db ?? getDb(),
+    model: deps?.model ?? createMockModelAdapter(),
+    terminal3: deps?.terminal3 ?? createLocalTerminal3Adapter(),
+  });
+
+  app.setNotFoundHandler((request, reply) => {
+    reply.status(404).send({
+      error: { code: 'RESOURCE_UNAVAILABLE', message: 'Resource not available', retryable: false },
+      request_id: request.id,
+    });
+  });
+
+  app.setErrorHandler((error, request, reply) => {
+    if (error instanceof ApiError) {
+      reply.status(error.status).send({
+        error: { code: error.code, message: error.message, retryable: error.retryable },
+        request_id: request.id,
+      });
+      return;
+    }
+
+    // Anything unhandled is logged server-side and reported without internals:
+    // no stack traces, no driver messages, no other customers' data (PLAN.md §7).
+    request.log.error({ err: error }, 'unhandled error');
+    reply.status(502).send({
+      error: {
+        code: 'RESOURCE_UNAVAILABLE',
+        message: 'The request could not be completed',
+        retryable: false,
+      },
+      request_id: request.id,
+    });
   });
 
   return app;

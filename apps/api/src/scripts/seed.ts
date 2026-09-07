@@ -2,6 +2,7 @@ import 'dotenv/config';
 import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { eq } from 'drizzle-orm';
+import type { Database } from '../db/index.js';
 import {
   CUSTOMER_ALEX_ID,
   CUSTOMER_OTHER_ID,
@@ -45,17 +46,12 @@ const addressOwnership: Record<keyof typeof addressFixtures, string> = {
 const rowId = (prefix: string, orderId: string, index: number) =>
   `${prefix}_${orderId.toLowerCase()}_${index + 1}`;
 
-async function main(): Promise<void> {
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) {
-    throw new Error(
-      'DATABASE_URL is not set. Copy apps/api/.env.example to apps/api/.env and fill it in.',
-    );
-  }
-
-  const client = postgres(databaseUrl, { max: 1 });
-  const db = drizzle(client, { schema });
-
+/**
+ * Writes the fixtures with an existing connection. Exported so the Task 5
+ * integration tests can reset to a known state between cases without shelling
+ * out to this script.
+ */
+export async function seedFixtures(db: Database): Promise<void> {
   await db.transaction(async (tx) => {
     await tx
       .insert(schema.customers)
@@ -123,6 +119,18 @@ async function main(): Promise<void> {
       );
     }
   });
+}
+
+async function main(): Promise<void> {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error(
+      'DATABASE_URL is not set. Copy apps/api/.env.example to apps/api/.env and fill it in.',
+    );
+  }
+
+  const client = postgres(databaseUrl, { max: 1 });
+  await seedFixtures(drizzle(client, { schema }) as unknown as Database);
 
   const owned = Object.entries(orderOwnership)
     .filter(([, customerId]) => customerId === CUSTOMER_ALEX_ID)
