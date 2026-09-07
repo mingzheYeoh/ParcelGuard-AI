@@ -393,6 +393,12 @@ source = local | terminal3 | mock. A provider reference alone does not prove ver
 | 429 | MODEL_RATE_LIMITED | Respect Retry-After |
 | 502 | MODEL_UNAVAILABLE / TERMINAL3_UNAVAILABLE | State the service failure |
 | 504 | MODEL_TIMEOUT / ACTION_OUTCOME_UNKNOWN | Model retry may be safe; never blindly repeat an external write |
+| 500 | INTERNAL_ERROR | An unexpected server fault. Report the failure; do not retry automatically |
+
+`INTERNAL_ERROR` is the envelope for a fault the server did not anticipate — a bug, not a
+business outcome. It carries no internal detail: no stack trace, no driver message, no other
+customer's data. Every *expected* condition has its own code above; reaching for
+`INTERNAL_ERROR` where one of those fits is a defect in the handler.
 
 A successfully handled chat denial returns 200 with an action_result denied card. Direct REST denials use HTTP errors. Do not confuse these layers.
 

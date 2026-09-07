@@ -197,3 +197,26 @@ describe('PLAN.md §6.1 fixtures', () => {
     expect(orderFixtures['ORD-2001'].status).toBe('processing');
   });
 });
+
+describe('PLAN.md §7.6 INTERNAL_ERROR', () => {
+  it('parses the 500 envelope for an unexpected server fault', () => {
+    const payload = {
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'The request could not be completed',
+        retryable: false,
+      },
+      request_id: 'req_3',
+    };
+    expect(errorEnvelopeSchema.parse(payload).error.code).toBe('INTERNAL_ERROR');
+  });
+
+  it('still rejects a code that is not in the contract', () => {
+    expect(() =>
+      errorEnvelopeSchema.parse({
+        error: { code: 'KABOOM', message: 'x', retryable: false },
+        request_id: 'req_4',
+      }),
+    ).toThrow();
+  });
+});
