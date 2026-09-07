@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
+import { IS_MOCK } from './lib/env';
 import './styles/index.css';
 
 const queryClient = new QueryClient({
@@ -15,7 +16,7 @@ const queryClient = new QueryClient({
  * In live mode no worker is started and failures stay visible as failures.
  */
 async function enableMocking() {
-  if (import.meta.env.VITE_API_MODE !== 'mock') return;
+  if (!IS_MOCK) return;
   const { worker } = await import('./mocks/browser');
   await worker.start({ onUnhandledRequest: 'bypass' });
 }
