@@ -36,9 +36,23 @@ Checked in the browser: only ORD-1001 and ORD-1002 appear (ORD-2001 never does);
 ## Not done / blocked
 
 - **The 390 px pass was done in a 390 px-wide iframe, not a 390 px browser window.** `resize_window` reported success but the window stayed at 1536 CSS px (it is maximised), so a true narrow window was not achievable here. Media queries and layout resolve against the iframe viewport, so the breakpoint behaviour shown is real — but touch targets, the mobile keyboard, and safe-area insets were **not** verified on a real device. Someone should repeat this on a phone or an un-maximised window before the demo.
-- **The end-to-end check with Task 5 has not been run yet** (`VITE_API_MODE=live` against the local Fastify API). Live mode was only verified to fail honestly, since this branch has the Task 1 placeholder API. That check belongs to both Task 3 and Task 5 "Done when" and is the next thing to do once both branches are on `main`.
+- ~~The end-to-end check with Task 5 has not been run yet.~~ **Done** — see "End-to-end with Task 5" below.
 - No automated frontend tests. Vitest is not configured in `apps/web`; `pnpm --filter web test` is still the Task 1 placeholder. The acceptance for this task is browser verification, but a couple of component tests around the proposal-card state table would be cheap insurance later.
 - Contrast was not measured with a tool. Colours come from the Design.md §4.2 token block; the amber and emerald tones I added for card states are Tailwind defaults at 700–950 on 50-tinted backgrounds, which are comfortably above 4.5:1, but nobody has run a checker.
+
+### End-to-end with Task 5 (both tasks' "Done when")
+
+Ran on a local merge of `task-3-frontend` and `task-5-api-core`: Fastify on :3001 against local PostgreSQL, `VITE_API_MODE=live pnpm dev` on :5173 through the Vite `/api` proxy.
+
+- `POST /api/v1/demo/session` → 200 with a real signed `pg_session` cookie (`HttpOnly; SameSite=Lax`)
+- Orders loaded from PostgreSQL; ORD-2001 absent; Demo-mode badge correctly gone
+- "Update delivery address" chip → proposal card → Confirm → green "Address updated", activity shows `ADDRESS_UPDATED`
+- Verified in the database afterwards: `ORD-1002.address_ref = addr_alex_office`, `version` 1 → 2, proposal `succeeded`, action evidence `{source: local, verified: false}`, idempotency response stored
+
+**Two integration bugs that only the live run could find** (both fixed):
+
+1. `lib/api.ts` spread `...init` *after* `headers`, so `content-type: application/json` was replaced by the init's own headers object. Fastify parsed no body and answered 422 on a valid message. MSW never noticed because it does not read `content-type`.
+2. The backend's mock model did not treat "Send ORD-1002 to my office instead." as an address change — its intent vocabulary lacked `send`, and it required the literal word "address". That is Design.md §5.4's own suggested chip copy, so the demo's happy path failed against the real API while passing against MSW. Fixed on the Task 5 branch.
 
 ## Contract change requests
 
