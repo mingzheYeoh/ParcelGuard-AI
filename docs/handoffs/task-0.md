@@ -9,7 +9,7 @@ Owner: human (with assistant help)   Date: 2026-09-07 (UTC)
 
 ## Database
 - **Local:** PostgreSQL on `localhost:5432`, database `parcel_guard` already exists (verified in DBeaver, user `postgres`). Local `apps/api/.env` points there — fill in the password.
-- **Cloud (Vercel Marketplace):** **NOT YET CREATED.** Human must do: Vercel dashboard → project `parcel-guard-ai` → *Storage* → *Create Database* → *Neon* → accept terms. This injects `DATABASE_URL` into Preview/Production automatically. Task 4 can start on the local DB; Task 9 needs the cloud one.
+- **Cloud (Vercel Marketplace):** ~~NOT YET CREATED~~ — **created 2026-09-07**; Neon is installed, `DATABASE_URL` is injected into Preview and Production, and Task 6 applied the migrations and the seed to it. The original instruction is kept below for the record. **NOT YET CREATED.** Human must do: Vercel dashboard → project `parcel-guard-ai` → *Storage* → *Create Database* → *Neon* → accept terms. This injects `DATABASE_URL` into Preview/Production automatically. Task 4 can start on the local DB; Task 9 needs the cloud one.
 
 ## Azure OpenAI
 - Foundry project `myinvois-project`, resource `myinvois`, deployment **`chat-small`** (model gpt-5.4-mini, version 2026-03-17, Global Standard, status Succeeded).
