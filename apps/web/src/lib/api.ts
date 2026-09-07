@@ -59,8 +59,11 @@ async function request<T>(
     response = await fetch(`${path.startsWith('/api') ? '' : BASE_URL}${path}`, {
       // The session is an HttpOnly cookie; every call must carry it.
       credentials: 'include',
-      headers: { 'content-type': 'application/json', ...init.headers },
       ...init,
+      // Headers last: spreading `init` after them drops content-type, and
+      // Fastify then parses no body at all (422 on a valid message). MSW does
+      // not read content-type, so only a live request exposes that.
+      headers: { 'content-type': 'application/json', ...init.headers },
     });
   } catch (cause) {
     // A live failure stays a failure — never a silent fall back to mock data
