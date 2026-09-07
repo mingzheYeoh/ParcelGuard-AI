@@ -1,0 +1,85 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+/* ParcelGuard design tokens — Design.md §4.2 (light theme only in P0). */
+:root {
+  color-scheme: light;
+  --background: #f6f7f9;
+  --foreground: #17232b;
+  --card: #ffffff;
+  --card-foreground: #17232b;
+  --popover: #ffffff;
+  --popover-foreground: #17232b;
+  --primary: #0f766e;
+  --primary-foreground: #ffffff;
+  --primary-hover: #115e59;
+  --secondary: #f0f3f5;
+  --secondary-foreground: #17232b;
+  --muted: #f0f3f5;
+  --muted-foreground: #5c6975;
+  --accent: #e7f4f1;
+  --accent-foreground: #115e59;
+  --border: #dfe5e9;
+  --input: #87949e;
+  --ring: #0f766e;
+  --destructive: #b42318;
+  --destructive-foreground: #ffffff;
+  --success: #166534;
+  --success-surface: #ecfdf3;
+  --warning: #9a3412;
+  --warning-surface: #fff4e8;
+  --error-surface: #fef3f2;
+  --radius: 0.75rem;
+  --pg-radius-control: 12px;
+  --pg-radius-card: 16px;
+  --pg-radius-sheet: 20px;
+  --pg-shadow-overlay: 0 12px 36px rgb(23 35 43 / 12%);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-surface: var(--success-surface);
+  --color-warning: var(--warning);
+  --color-warning-surface: var(--warning-surface);
+  --color-error-surface: var(--error-surface);
+  --font-sans: 'Inter', 'Noto Sans SC', system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Consolas, monospace;
+  --radius-control: var(--pg-radius-control);
+  --radius-card: var(--pg-radius-card);
+  --radius-panel: var(--pg-radius-sheet);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+}

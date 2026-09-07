@@ -1,0 +1,20 @@
+{
+  "name": "parcelguard-ai",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ParcelGuard AI — AI order-support assistant with enforced permissions (monorepo root)",
+  "packageManager": "pnpm@11.22.0",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm --filter contracts build && pnpm --parallel --filter api --filter web dev",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2"
+  }
+}

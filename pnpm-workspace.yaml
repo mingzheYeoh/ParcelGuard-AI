@@ -1,0 +1,8 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# pnpm 11 reads settings from this file (the package.json "pnpm" field is ignored).
+onlyBuiltDependencies:
+  - esbuild
+  - msw
