@@ -21,7 +21,7 @@ Agents cannot create accounts, accept terms of service, or obtain credits. The h
 | **Vercel** (Hobby is fine) | Hosts the Vite frontend and the Fastify backend as Vercel Functions | Team/personal scope; link the GitHub repo | [Fastify on Vercel](https://vercel.com/docs/frameworks/backend/fastify) · [Functions](https://vercel.com/docs/functions) |
 | **Managed PostgreSQL via Vercel Marketplace** (Neon recommended) | Orders, conversations, proposals, actions, idempotency records | `DATABASE_URL` (pooled) and a second branch/database for local dev | Install from the Vercel project's *Storage* tab so the env var is injected automatically. [Marketplace](https://vercel.com/marketplace) · [Storage overview](https://vercel.com/docs/storage) |
 | **Azure** (Azure for Students or any subscription with Azure OpenAI) | Intent understanding + tool selection | Resource endpoint, API key, deployment name of a small tool-calling model | Follow PLAN.md §9.2 preflight. Check quota > 0 before the event |
-| **Terminal 3** (Agent Dev Kit sandbox) | Agent identity + protected action | Sandbox API key, starter repo access, SDK package name and version | [ADK](https://terminal3.io/products/agent-developer-kit) · [GitHub](https://github.com/Terminal-3). Record real capabilities; do not assume |
+| **Terminal 3** (Agent Dev Kit) | Agent identity + protected action | Developer key `T3N_API_KEY` from the self-serve [claim page](https://www.terminal3.io/claim-page) (work email; shown **once**; enter the event campaign code for extra credits) | SDK `@terminal3/t3n-sdk`, `setEnvironment("testnet")`. Official docs mirrored in `docs/terminal3/`; Claude Code skill at `.claude/skills/t3n-adk-quickstart/`. Smoke test: `npx tsx scripts/preflight/terminal3-smoke.ts` |
 
 ### 0.2 Software to install locally
 
@@ -277,12 +277,12 @@ Done when: the five user journeys of PLAN.md §3 pass against the local API with
 ### Task 8 — Terminal 3 adapter
 **Owner:** integration · **Depends on:** 5, Task 0 (Terminal 3) · **Blocks:** 10
 
-Do: follow PLAN.md §10 steps 1–6.
-1. Install the official SDK at the version noted in Task 0; run its starter against the sandbox from `apps/api`.
+Do: follow PLAN.md §10 steps 1–6. Read `docs/terminal3/reference.md` (confirmed SDK methods) and `.claude/skills/t3n-adk-quickstart/SKILL.md` first; use only documented symbols.
+1. Install `@terminal3/t3n-sdk` in `apps/api`; run `scripts/preflight/terminal3-smoke.ts` (identity handshake + `authenticate` → `did:t3n:…`). Identity needs no Rust. A protected action needs a registered WASM contract (`tenant.contracts.register/execute`); reuse `Terminal-3/z-tenant-flight` or the Circle demo contract rather than writing Rust from scratch, and only if time allows.
 2. Implement `terminal3Adapter` behind the interface from Task 5. Support exactly the protected operation the starter actually provides; document what it is.
 3. Wire it into `proposalService` confirm: dispatch after claiming `executing`; keep the operation ID; timeouts → `outcome_unknown`, never blind retry.
 4. Fill `evidence` from real responses; `verified:true` only when the SDK returns a verifiable result.
-5. **Compatibility check on Vercel**: confirm the SDK works inside a Vercel Function (no native binaries, no long-lived sockets, no filesystem writes outside `/tmp`). If it does not, report the exact failure and keep `TERMINAL3_MODE=mock` in the deployed environment.
+5. **Compatibility check on Vercel**: the SDK loads a WASM component and official docs report bundler breakage. Keep `@terminal3/t3n-sdk` **external/unbundled** in the function (plain Node import; if a tsup step exists, mark it `external`), confirm no filesystem writes outside `/tmp`, and test `handshake()+authenticate()` from a Preview deployment. If it fails, report the exact error and keep `TERMINAL3_MODE=mock` in the deployed environment.
 
 Done when: at least one confirm produces provider evidence locally; the Vercel Preview shows `terminal3: live` **or** a documented `unavailable` with the concrete reason in the handoff.
 
