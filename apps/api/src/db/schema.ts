@@ -173,6 +173,11 @@ export const messages = pgTable(
     // (PLAN.md §8.3). Unique per conversation; nullable because assistant
     // messages are not client-submitted.
     clientMessageId: text('client_message_id'),
+    // The ChatTurn returned for this message, stored on the user row that
+    // carries client_message_id so a retried send replays the identical turn
+    // (PLAN.md §8.3) instead of re-running the agent and creating a second
+    // proposal. Null on assistant rows.
+    turn: jsonb('turn'),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
       .notNull()
       .defaultNow(),

@@ -1,3 +1,7 @@
+// Local entry point only: load apps/api/.env before anything reads config.
+// Deployed environments inject their own variables, so app.ts must never
+// depend on dotenv being present.
+import 'dotenv/config';
 import { buildApp } from './app.js';
 
 const port = Number(process.env.PORT ?? 3001);
