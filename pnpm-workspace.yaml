@@ -3,6 +3,9 @@ packages:
   - "packages/*"
 
 # pnpm 11 reads settings from this file (the package.json "pnpm" field is ignored).
-onlyBuiltDependencies:
-  - esbuild
-  - msw
+# `allowBuilds` is pnpm 11's replacement for pnpm 10's `onlyBuiltDependencies` list.
+# The old key still parses but approves nothing, so CI installs die with
+# ERR_PNPM_IGNORED_BUILDS. Regenerate with `pnpm approve-builds --all`.
+allowBuilds:
+  esbuild: true
+  msw: true
