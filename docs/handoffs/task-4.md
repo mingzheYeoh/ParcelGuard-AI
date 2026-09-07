@@ -50,3 +50,23 @@ Agent/role: backend   Branch: task-4-db-schema   Date: 2026-09-07 (UTC)
   In all three cases: `pnpm --filter api db:migrate && pnpm --filter api db:seed`, then verify with the query in Not done/blocked above.
 - **`db:reset` is destructive** (`DROP SCHEMA public CASCADE`) and refuses to run if `NODE_ENV=production`; it is meant for local iteration only, never point it at the Vercel Preview/Production `DATABASE_URL`.
 - Task 5 (backend core) should build `repositories/**` on top of `db`/`schema` as-is; no schema changes are anticipated for Task 5's known scope (sessions, policy, proposals, idempotency), but flag any gap in that task's own handoff rather than editing `apps/api/src/db/**` (owned by Task 4/backend generally, but avoid churn — coordinate via handoff if a column is missing).
+
+## Owner verification (2026-09-07, post-review)
+
+The blocker above was environmental, not a defect. On the owner's machine PostgreSQL **18** is installed and running (`postgresql-x64-18`, `Test-NetConnection localhost:5432` → `TcpTestSucceeded: True`), so the acceptance criterion was run first-hand before merge:
+
+- `pnpm --filter api db:migrate` → `Running migrations from ./drizzle ... Migrations complete.` exit 0
+- `pnpm --filter api db:seed` → exit 0; run twice in a row, second run also exit 0 (idempotency confirmed)
+- `information_schema.tables` → **11 tables**: actions, addresses, conversations, customers, idempotency_keys, messages, order_items, order_timeline, orders, proposals, sessions
+- `SELECT id FROM orders WHERE customer_id='cus_demo_alex'` → exactly `ORD-1001`, `ORD-1002`; `ORD-2001` belongs to `cus_demo_other` — acceptance criterion met
+- `pnpm install --frozen-lockfile` (CI=1), `pnpm typecheck`, `pnpm build`, `pnpm test` (11 contract tests) → all exit 0 after merging Task 2
+
+### Change made during review
+
+`apps/api/src/scripts/seed.ts` now imports `orderFixtures`, `addressFixtures` and `orderOwnership` from `@parcelguard/contracts` instead of restating them. Task 2 and Task 4 were written in parallel and their copies had already drifted — the DB seeded `"Order placed"` timeline labels at 2026-09-02/09-03 while contracts (and therefore the frontend's MSW handlers) used `"Order confirmed"` at 09-03/09-05. Task 10 compares mock against live, so that drift would have surfaced as a phantom bug. Ownership and display names stay in the seed: they are server-only facts contracts deliberately does not expose (PLAN.md §6.2).
+
+### Notes for Task 5 (backend lane)
+
+- `actions.reason_code` is nullable in the schema, but `actionSchema.reason_code` in contracts is a required string. Always write a reason code, or coalesce on read — otherwise a null row produces a response the frontend's schema rejects. Left as-is to avoid regenerating the migration; tighten it if Task 5 finds a null path.
+- `apps/api/src/db/index.ts` creates the client at **module scope** and throws when `DATABASE_URL` is missing. Importing it from `app.ts` unconditionally would take down `GET /health`, which PLAN.md §7.1 says can be public and TASKS.md §2 rule 5 says must report honest modes. Import it lazily, or keep health independent of the DB module.
+- `DATABASE_POOL_MAX` (optional, default 5) is read by that module and is now documented in `apps/api/.env.example`; it is not part of the TASKS.md §0.3 list.
