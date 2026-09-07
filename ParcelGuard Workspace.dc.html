@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#F6F7F9;color:#17232B;font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#0F766E}a:hover{color:#115E59}
+button,textarea{font-family:inherit}
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+@keyframes pgDot{0%,80%,100%{opacity:.25}40%{opacity:1}}
+@keyframes pgSpin{to{transform:rotate(360deg)}}
+@keyframes pgIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:0s!important;animation-iteration-count:1!important;transition-duration:0s!important}}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column;background:#F6F7F9;color:#17232B;font-family:'Inter',system-ui,sans-serif;font-size:14px;line-height:22px">
+  <header style="height:64px;flex:none;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 24px;background:#FFFFFF;border-bottom:1px solid #DFE5E9">
+    <div style="display:flex;align-items:center;gap:12px;min-width:0">
+      <div aria-hidden="true" style="width:32px;height:32px;border-radius:10px;background:#0F766E;display:flex;align-items:center;justify-content:center;flex:none">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"></path><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>
+      </div>
+      <span style="font-size:18px;font-weight:600;line-height:24px">ParcelGuard</span>
+      <sc-if value="{{ notMobile }}" hint-placeholder-val="{{ true }}">
+        <span aria-hidden="true" style="width:1px;height:20px;background:#DFE5E9"></span>
+        <span style="color:#5C6975;white-space:nowrap">Support workspace</span>
+      </sc-if>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;flex:none">
+      <div style="position:relative">
+        <button type="button" aria-haspopup="menu" aria-expanded="{{ menuOpen }}" aria-label="Account menu" onClick="{{ toggleMenu }}" style="height:44px;padding:0 6px 0 12px;display:flex;align-items:center;gap:10px;border:0;background:transparent;border-radius:12px;cursor:pointer;color:#17232B;font-size:14px;font-weight:500;transition:background 150ms" style-hover="background:#F0F3F5">
+          <sc-if value="{{ notMobile }}" hint-placeholder-val="{{ true }}"><span>Alex</span></sc-if>
+          <span aria-hidden="true" style="width:32px;height:32px;border-radius:999px;background:#E7F4F1;color:#115E59;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px">A</span>
+        </button>
+        <sc-if value="{{ menuOpen }}" hint-placeholder-val="{{ false }}">
+          <div role="menu" style="position:absolute;right:0;top:52px;width:240px;background:#fff;border:1px solid #DFE5E9;border-radius:12px;box-shadow:0 12px 36px rgba(23,35,43,0.12);padding:8px;z-index:60;animation:pgIn 150ms ease-out">
+            <div style="padding:8px 12px 12px;border-bottom:1px solid #DFE5E9;margin-bottom:8px">
+              <div style="font-weight:600">Alex</div>
+              <div style="font-size:12px;line-height:18px;color:#5C6975">Customer account</div>
+            </div>
+            <button type="button" role="menuitem" onClick="{{ openDemo }}" style="width:100%;text-align:left;height:40px;padding:0 12px;border:0;background:transparent;border-radius:8px;cursor:pointer;color:#17232B;font-size:14px;font-weight:500;display:flex;align-items:center;justify-content:space-between;gap:8px" style-hover="background:#F0F3F5"><span>Connection status</span><span style="font-size:12px;line-height:18px;padding:2px 8px;border-radius:999px;background:#FFF4E8;color:#9A3412">Demo</span></button>
+            <button type="button" role="menuitem" disabled="{{ newConvDisabled }}" onClick="{{ menuNewConversation }}" style="{{ menuNewConvStyle }}">New conversation</button>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </header>
+
+  <main style="{{ mainStyle }}">
+    <aside aria-label="My orders" style="{{ ordersPanelStyle }}">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:16px 16px 12px">
+        <h2 style="margin:0;font-size:14px;line-height:20px;font-weight:600">My orders <span style="color:#5C6975;font-weight:400">{{ orderCountText }}</span></h2>
+        <sc-if value="{{ isMobile }}" hint-placeholder-val="{{ false }}">
+          <button type="button" aria-label="Close orders" onClick="{{ closePanel }}" style="width:44px;height:44px;margin:-8px -8px -8px 0;border:0;background:transparent;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#5C6975" style-hover="background:#F0F3F5"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+        </sc-if>
+      </div>
+      <div style="padding:0 16px 12px">
+        <input type="search" aria-label="Search orders" placeholder="Search by order ID or item" value="{{ search }}" onChange="{{ onSearch }}" style="display:block;width:100%;height:40px;padding:0 12px;border:1px solid #87949E;border-radius:12px;background:#fff;color:#17232B;font-family:inherit;font-size:14px">
+      </div>
+      <div role="group" aria-label="Filter orders" style="display:flex;gap:4px;padding:0 16px 12px">
+        <sc-for list="{{ filters }}" as="f" hint-placeholder-count="3">
+          <button type="button" aria-pressed="{{ f.active }}" onClick="{{ f.select }}" style="{{ f.style }}">{{ f.label }}</button>
+        </sc-for>
+      </div>
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:0 16px 16px;display:flex;flex-direction:column;gap:12px">
+        <sc-if value="{{ ordersLoading }}" hint-placeholder-val="{{ true }}">
+          <div aria-hidden="true" style="height:150px;border-radius:16px;background:#F0F3F5"></div>
+          <div aria-hidden="true" style="height:150px;border-radius:16px;background:#F0F3F5"></div>
+        </sc-if>
+        <sc-if value="{{ ordersEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:24px 16px;text-align:center;color:#5C6975;display:flex;flex-direction:column;gap:12px;align-items:center">
+            <span style="overflow-wrap:anywhere">{{ ordersEmptyText }}</span>
+            <button type="button" onClick="{{ clearFilter }}" style="height:44px;padding:0 16px;border:1px solid #DFE5E9;background:#fff;color:#17232B;border-radius:12px;font-size:14px;font-weight:500;cursor:pointer" style-hover="background:#F0F3F5">Clear filters</button>
+          </div>
+        </sc-if>
+        <sc-for list="{{ visibleOrders }}" as="o" hint-placeholder-count="2">
+          <button type="button" aria-pressed="{{ o.selected }}" onClick="{{ o.open }}" style="{{ o.cardStyle }}">
+            <div style="display:flex;gap:12px;align-items:center">
+              <div style="width:48px;height:48px;border-radius:12px;background:#F0F3F5;display:flex;align-items:center;justify-content:center;flex:none">{{ o.icon }}</div>
+              <div style="min-width:0">
+                <div style="font-weight:500;overflow-wrap:anywhere">{{ o.name }}</div>
+                <div style="font-size:12px;line-height:18px;color:#5C6975">{{ o.qty }}</div>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;gap:8px;margin-top:12px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:13px;font-variant-numeric:tabular-nums">
+              <span style="color:#5C6975">{{ o.id }}</span>
+              <span style="font-weight:500">{{ o.total }}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap">
+              <span style="display:flex;gap:6px;flex-wrap:wrap">
+                <span style="{{ o.badgeStyle }}">{{ o.statusLabel }}</span>
+                <sc-if value="{{ o.hasUpdate }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:4px;font-size:12px;line-height:18px;padding:2px 10px;border-radius:999px;font-weight:500;white-space:nowrap;background:#ECFDF3;color:#166534">{{ o.updateText }}</span></sc-if>
+              </span>
+              <span style="display:flex;align-items:center;gap:2px;font-size:12px;line-height:18px;color:#115E59;font-weight:500;white-space:nowrap">View details <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></span>
+            </div>
+          </button>
+        </sc-for>
+      </div>
+      <div style="flex:none;border-top:1px solid #DFE5E9;padding:12px 16px 16px">
+        <h3 style="margin:0 0 8px;font-size:12px;line-height:18px;font-weight:600;color:#5C6975;text-transform:uppercase;letter-spacing:0.04em">Saved addresses</h3>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="display:flex;align-items:center;gap:10px;padding:6px 0">
+            <span aria-hidden="true" style="display:flex;color:#5C6975"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg></span>
+            <span style="font-weight:500">Home</span>
+            <span style="font-size:12px;line-height:18px;color:#5C6975;margin-left:auto">Kuala Lumpur</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:6px 0">
+            <span aria-hidden="true" style="display:flex;color:#5C6975"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg></span>
+            <span style="font-weight:500">Office</span>
+            <span style="font-size:12px;line-height:18px;color:#5C6975;margin-left:auto">Kuala Lumpur</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <section aria-label="Conversation" style="display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;background:#FFFFFF;border:1px solid #DFE5E9;border-radius:16px">
+      <div style="height:64px;flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 16px;border-bottom:1px solid #DFE5E9">
+        <div style="display:flex;align-items:center;gap:12px;min-width:0">
+          <div aria-hidden="true" style="width:32px;height:32px;border-radius:999px;background:#E7F4F1;color:#0F766E;display:flex;align-items:center;justify-content:center;flex:none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg></div>
+          <div style="min-width:0">
+            <div style="font-weight:600;line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">ParcelGuard Assistant</div>
+            <div style="font-size:12px;line-height:18px;color:#5C6975">Order support</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex:none">
+          <sc-if value="{{ isMobile }}" hint-placeholder-val="{{ false }}">
+            <button type="button" aria-label="Open orders" onClick="{{ openOrders }}" style="width:44px;height:44px;border:1px solid #DFE5E9;background:#fff;color:#17232B;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#F0F3F5"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"></path><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg></button>
+          </sc-if>
+          <sc-if value="{{ notDesktop }}" hint-placeholder-val="{{ false }}">
+            <button type="button" aria-label="Open activity" onClick="{{ openActivity }}" style="height:44px;padding:0 12px;border:1px solid #DFE5E9;background:#fff;color:#17232B;border-radius:12px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500" style-hover="background:#F0F3F5"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"></path></svg><span>{{ activityCountText }}</span></button>
+          </sc-if>
+          <button type="button" disabled="{{ newConvDisabled }}" onClick="{{ newConversation }}" style="{{ newConvStyle }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg><sc-if value="{{ notMobile }}" hint-placeholder-val="{{ true }}"><span>New conversation</span></sc-if></button>
+        </div>
+      </div>
+
+      <div ref="{{ listRef }}" role="log" aria-live="polite" aria-relevant="additions" style="flex:1;min-height:0;overflow-y:auto;padding:24px 20px;display:flex;flex-direction:column;gap:24px">
+        <sc-if value="{{ showWelcome }}" hint-placeholder-val="{{ true }}">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px 8px;gap:20px">
+            <div aria-hidden="true" style="width:48px;height:48px;border-radius:14px;background:#E7F4F1;color:#0F766E;display:flex;align-items:center;justify-content:center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"></path><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg></div>
+            <div style="display:flex;flex-direction:column;gap:8px;max-width:440px">
+              <h1 style="margin:0;font-size:28px;line-height:36px;font-weight:600;letter-spacing:-0.02em;text-wrap:pretty">How can I help with your order?</h1>
+              <p style="margin:0;color:#5C6975;font-size:15px;line-height:24px;text-wrap:pretty">Track a delivery or update a saved address before your order ships.</p>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px">
+              <sc-for list="{{ chips }}" as="c" hint-placeholder-count="3">
+                <button type="button" onClick="{{ c.send }}" style="height:44px;padding:0 16px;border:1px solid #DFE5E9;background:#fff;color:#17232B;border-radius:999px;font-size:14px;font-weight:500;cursor:pointer;transition:background 150ms,border-color 150ms" style-hover="background:#E7F4F1;border-color:#0F766E;color:#115E59">{{ c.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-for list="{{ messages }}" as="m" hint-placeholder-count="0">
+          <div id="{{ m.domId }}" style="{{ m.rowStyle }}">
+            <sc-if value="{{ m.isUser }}" hint-placeholder-val="{{ false }}">
+              <div style="max-width:80%;display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+                <div style="background:#E7F4F1;color:#17232B;border-radius:16px 16px 4px 16px;padding:12px 16px;font-size:15px;line-height:24px;white-space:pre-wrap;overflow-wrap:anywhere">{{ m.content }}</div>
+                <span style="font-size:12px;line-height:18px;color:#5C6975;padding-right:4px">{{ m.time }}</span>
+              </div>
+            </sc-if>
+            <sc-if value="{{ m.isAgent }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;gap:12px;max-width:92%;min-width:0">
+                <div aria-hidden="true" style="width:28px;height:28px;border-radius:999px;background:#E7F4F1;color:#0F766E;display:flex;align-items:center;justify-content:center;flex:none;margin-top:2px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg></div>
+                <div style="display:flex;flex-direction:column;gap:8px;min-width:0;flex:1">
+                  <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span style="font-size:12px;line-height:18px;font-weight:600">ParcelGuard Assistant</span><span style="font-size:12px;line-height:18px;color:#5C6975">{{ m.time }}</span></div>
+                  <div style="font-size:15px;line-height:24px;white-space:pre-wrap;overflow-wrap:anywhere">{{ m.content }}</div>
+                  <sc-for list="{{ m.cards }}" as="card" hint-placeholder-count="0">
+
+                    <sc-if value="{{ card.isOrder }}" hint-placeholder-val="{{ false }}">
+                      <div style="background:#fff;border:1px solid #DFE5E9;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;max-width:480px">
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                          <span style="font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-weight:600;font-size:14px">{{ card.order.id }}</span>
+                          <span style="{{ card.order.badgeStyle }}">{{ card.order.statusLabel }}</span>
+                        </div>
+                        <div style="display:flex;gap:12px;align-items:center">
+                          <div style="width:48px;height:48px;border-radius:12px;background:#F0F3F5;display:flex;align-items:center;justify-content:center;flex:none">{{ card.order.icon }}</div>
+                          <div style="flex:1;min-width:0">
+                            <div style="font-weight:500">{{ card.order.name }}</div>
+                            <div style="font-size:12px;line-height:18px;color:#5C6975">{{ card.order.qty }} · Deliver to {{ card.order.addressLabel }}</div>
+                          </div>
+                          <div style="font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-variant-numeric:tabular-nums;font-weight:500">{{ card.order.total }}</div>
+                        </div>
+                        <div style="height:1px;background:#DFE5E9"></div>
+                        <ol style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column">
+                          <sc-for list="{{ card.order.timeline }}" as="t" hint-placeholder-count="0">
+                            <li style="display:grid;grid-template-columns:20px minmax(0,1fr);gap:0 12px">
+                              <div style="display:flex;flex-direction:column;align-items:center">
+                                <span style="{{ t.dotStyle }}">{{ t.dotIcon }}</span>
+                                <sc-if value="{{ t.hasLine }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="width:2px;flex:1;min-height:12px;background:#DFE5E9;margin:2px 0"></span></sc-if>
+                              </div>
+                              <div style="padding-bottom:12px">
+                                <div style="{{ t.labelStyle }}">{{ t.label }}</div>
+                                <div style="font-size:12px;line-height:18px;color:#5C6975">{{ t.time }}</div>
+                              </div>
+                            </li>
+                          </sc-for>
+                        </ol>
+                        <button type="button" onClick="{{ card.order.open }}" style="height:44px;padding:0 16px;border:1px solid #DFE5E9;background:#fff;color:#17232B;border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background 150ms" style-hover="background:#F0F3F5">View order details</button>
+                      </div>
+                    </sc-if>
+
+                    <sc-if value="{{ card.isProposal }}" hint-placeholder-val="{{ false }}">
+                      <div style="background:#fff;border:1px solid #DFE5E9;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;max-width:480px;box-shadow:0 4px 16px rgba(23,35,43,0.06)">
+                        <div style="display:flex;align-items:center;gap:8px">
+                          <span aria-hidden="true" style="color:#0F766E;display:flex"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg></span>
+                          <span style="font-weight:600">Confirm address change</span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                          <span style="font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:13px;color:#5C6975">{{ card.orderId }}</span>
+                          <span style="font-size:13px;color:#5C6975">· {{ card.orderName }}</span>
+                        </div>
+                        <div style="display:grid;grid-template-columns:minmax(0,1fr) 20px minmax(0,1fr);gap:8px;align-items:center">
+                          <div style="border:1px solid #DFE5E9;border-radius:12px;padding:10px 12px;min-width:0">
+                            <div style="font-size:12px;line-height:18px;color:#5C6975">Current</div>
+                            <div style="font-weight:600">{{ card.from }}</div>
+                            <div style="font-size:12px;line-height:18px;color:#5C6975">Kuala Lumpur</div>
+                          </div>
+                          <svg aria-label="changes to" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5C6975" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+                          <div style="border:1px solid #0F766E;background:#E7F4F1;border-radius:12px;padding:10px 12px;min-width:0;color:#115E59">
+                            <div style="font-size:12px;line-height:18px">New</div>
+                            <div style="font-weight:600">{{ card.to }}</div>
+                            <div style="font-size:12px;line-height:18px">Kuala Lumpur</div>
+                          </div>
+                        </div>
+                        <p style="margin:0;font-size:12px;line-height:18px;color:#5C6975">This change applies to your saved address.</p>
+                        <sc-if value="{{ card.isPending }}" hint-placeholder-val="{{ false }}">
+                          <div style="font-size:12px;line-height:18px;color:#5C6975">{{ card.expiresText }}</div>
+                          <div style="display:flex;gap:12px;flex-wrap:wrap">
+                            <button type="button" onClick="{{ card.confirm }}" style="flex:1;min-width:140px;height:44px;padding:0 16px;border:0;background:#0F766E;color:#fff;border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;transition:background 150ms" style-hover="background:#115E59">Confirm change</button>
+                            <button type="button" onClick="{{ card.cancel }}" style="flex:1;min-width:140px;height:44px;padding:0 16px;border:1px solid #DFE5E9;background:#fff;color:#17232B;border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;transition:background 150ms" style-hover="background:#F0F3F5">Cancel</button>
+                          </div>
+                        </sc-if>
+                        <sc-if value="{{ card.isExecuting }}" hint-placeholder-val="{{ false }}">
+                          <div style="display:flex;gap:12px;flex-wrap:wrap">
+                            <button type="button" disabled="{{ true }}" style="flex:1;min-width:140px;height:44px;padding:0 16px;border:0;background:#0F766E;color:#fff;border-radius:12px;font-size:14px;font-weight:500;opacity:0.6;display:flex;align-items:center;justify-content:center;gap:8px">{{ spinner }}<span>Updating address…</span></button>
+                            <button type="button" disabled="{{ true }}" style="flex:1;min-width:140px;height:44px;padding:0 16px;border:1px solid #DFE5E9;background:#fff;color:#17232B;border-radius:12px;font-size:14px;font-weight:500;opacity:0.6">Cancel</button>
+                          </div>
+                        </sc-if>
+                        <sc-if value="{{ card.hasBanner }}" hint-placeholder-val="{{ false }}">
+                          <div role="status" style="{{ card.bannerStyle }}">
+                            <span aria-hidden="true" style="display:flex;flex:none;margin-top:2px">{{ card.bannerIcon }}</span>
+                            <div style="min-width:0;flex:1">
+                              <div style="font-weight:600">{{ card.bannerTitle }}</div>
+                              <div style="font-size:12px;line-height:18px">{{ card.bannerText }}</div>
+                            </div>
+                            <sc-if value="{{ card.canRetry }}" hint-placeholder-val="{{ false }}">
+                              <button type="button" onClick="{{ card.confirm }}" style="height:36px;padding:0 12px;border:1px solid currentColor;background:transparent;color:inherit;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;flex:none">Retry</button>
+                            </sc-if>
+                          </div>
+                        </sc-if>
+                      </div>
+                    </sc-if>
+
+                    <sc-if value="{{ card.isResult }}" hint-placeholder-val="{{ false }}">
+                      <div role="status" style="{{ card.resultStyle }}">
+                        <span aria-hidden="true" style="display:flex;flex:none;margin-top:2px">{{ card.icon }}</span>
+                        <div style="min-width:0;flex:1">
+                          <div style="font-weight:600">{{ card.title }}</div>
+                          <div style="font-size:13px;line-height:20px;overflow-wrap:anywhere">{{ card.description }}</div>
+                          <sc-if value="{{ card.hasWhy }}" hint-placeholder-val="{{ false }}">
+                            <details style="margin-top:8px">
+                              <summary style="cursor:pointer;font-size:13px;line-height:20px;font-weight:600;list-style:none;display:inline-flex;align-items:center;gap:4px;min-height:28px">Why was this denied? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></summary>
+                              <p style="margin:4px 0 0;font-size:13px;line-height:20px;overflow-wrap:anywhere">{{ card.why }}</p>
+                            </details>
+                          </sc-if>
+                        </div>
+                      </div>
+                    </sc-if>
+
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+
+        <sc-if value="{{ pending }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;gap:12px;align-items:center">
+            <div aria-hidden="true" style="width:28px;height:28px;border-radius:999px;background:#E7F4F1;color:#0F766E;display:flex;align-items:center;justify-content:center;flex:none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg></div>
+            <div style="display:flex;align-items:center;gap:8px;color:#5C6975;font-size:15px;line-height:24px"><span>Checking your request…</span>{{ dots }}</div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ hasFailed }}" hint-placeholder-val="{{ false }}">
+          <div role="alert" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;border-radius:12px;background:#FEF3F2;color:#B42318;border:1px solid #FECDCA">
+            <span aria-hidden="true" style="display:flex;flex:none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" x2="12" y1="8" y2="12"></line><line x1="12" x2="12.01" y1="16" y2="16"></line></svg></span>
+            <span style="flex:1;min-width:160px">{{ failedText }}</span>
+            <button type="button" onClick="{{ retryFailed }}" style="height:36px;padding:0 12px;border:1px solid currentColor;background:transparent;color:inherit;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer">Retry</button>
+          </div>
+        </sc-if>
+      </div>
+
+      <div style="flex:none;border-top:1px solid #DFE5E9;padding:16px;background:#fff">
+        <sc-if value="{{ hasContext }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px;line-height:18px;flex-wrap:wrap">
+            <span style="color:#5C6975">Discussing</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:2px 2px 2px 10px;border-radius:999px;background:#E7F4F1;color:#115E59;font-weight:500">
+              <span style="font-family:ui-monospace,SFMono-Regular,Consolas,monospace">{{ contextId }}</span>
+              <span>· {{ contextName }}</span>
+              <button type="button" aria-label="Clear order context" onClick="{{ clearContext }}" style="width:28px;height:28px;border:0;background:transparent;border-radius:999px;cursor:pointer;color:#115E59;display:flex;align-items:center;justify-content:center" style-hover="background:#fff"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+            </span>
+          </div>
+        </sc-if>
+        <div style="position:relative">
+          <textarea ref="{{ inputRef }}" aria-label="Message ParcelGuard Assistant" placeholder="Ask about an order…" rows="1" maxLength="2000" value="{{ input }}" onChange="{{ onInput }}" onKeyDown="{{ onKeyDown }}" style="display:block;width:100%;height:58px;min-height:58px;max-height:144px;resize:none;padding:16px 68px 16px 16px;border:1px solid #87949E;border-radius:12px;background:#fff;color:#17232B;font-size:15px;line-height:24px;overflow-y:hidden"></textarea>
+          <button type="button" aria-label="Send message" disabled="{{ sendDisabled }}" onClick="{{ sendCurrent }}" style="{{ sendStyle }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z"></path><path d="M6 12h16"></path></svg></button>
+        </div>
+        <div style="margin-top:8px;font-size:12px;line-height:18px;color:#5C6975">Enter to send · Shift + Enter for a new line</div>
+      </div>
+    </section>
+
+    <aside aria-label="Recent actions" style="{{ actionsPanelStyle }}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:16px 16px 12px">
+        <div>
+          <h2 style="margin:0;font-size:14px;line-height:20px;font-weight:600">Recent actions</h2>
+          <div style="font-size:12px;line-height:18px;color:#5C6975">What happened in this conversation</div>
+        </div>
+        <sc-if value="{{ notDesktop }}" hint-placeholder-val="{{ false }}">
+          <button type="button" aria-label="Close activity" onClick="{{ closePanel }}" style="width:44px;height:44px;margin:-8px -8px -8px 0;border:0;background:transparent;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#5C6975" style-hover="background:#F0F3F5"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+        </sc-if>
+      </div>
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:0 8px 16px">
+        <sc-if value="{{ actionsEmpty }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:24px 8px;color:#5C6975;text-align:center">Your order actions will appear here.</div>
+        </sc-if>
+        <ol style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px">
+          <sc-for list="{{ actions }}" as="a" hint-placeholder-count="0">
+            <li>
+              <button type="button" onClick="{{ a.open }}" style="width:100%;text-align:left;display:grid;grid-template-columns:20px minmax(0,1fr);gap:0 12px;padding:10px 8px;border:0;background:transparent;border-radius:12px;cursor:pointer;color:#17232B;font-size:14px;line-height:20px;transition:background 150ms" style-hover="background:#F0F3F5">
+                <span aria-hidden="true" style="display:flex;margin-top:1px">{{ a.icon }}</span>
+                <span style="min-width:0">
+                  <span style="display:block;font-weight:500;overflow-wrap:anywhere">{{ a.typeLabel }}</span>
+                  <span style="display:block;font-size:12px;line-height:18px;color:#5C6975">{{ a.time }} · <span style="{{ a.outcomeStyle }}">{{ a.outcomeLabel }}</span></span>
+                  <span style="display:block;font-size:12px;line-height:18px;color:#5C6975;overflow-wrap:anywhere">{{ a.summary }}</span>
+                </span>
+              </button>
+            </li>
+          </sc-for>
+        </ol>
+      </div>
+    </aside>
+  </main>
+
+  <sc-if value="{{ menuOpen }}" hint-placeholder-val="{{ false }}">
+    <div aria-hidden="true" onClick="{{ closeMenu }}" style="position:fixed;inset:0;z-index:55"></div>
+  </sc-if>
+  <sc-if value="{{ overlayOpen }}" hint-placeholder-val="{{ false }}">
+    <div aria-hidden="true" onClick="{{ closeAll }}" style="position:fixed;inset:0;background:rgba(23,35,43,0.32);z-index:40"></div>
+  </sc-if>
+
+  <sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
+    <aside role="dialog" aria-modal="true" aria-labelledby="pg-sheet-title" aria-describedby="pg-sheet-desc" style="position:fixed;top:0;right:0;bottom:0;width:min(420px,100vw);background:#fff;z-index:50;display:flex;flex-direction:column;box-shadow:0 12px 36px rgba(23,35,43,0.12);border-left:1px solid #DFE5E9;border-radius:20px 0 0 20px;animation:pgIn 220ms ease-out">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:20px 20px 16px;border-bottom:1px solid #DFE5E9">
+        <div style="min-width:0">
+          <h2 id="pg-sheet-title" style="margin:0;font-size:18px;line-height:24px;font-weight:600;overflow-wrap:anywhere">{{ sheetTitle }}</h2>
+          <sc-if value="{{ hasSheetDesc }}" hint-placeholder-val="{{ false }}"><p id="pg-sheet-desc" style="margin:4px 0 0;font-size:12px;line-height:18px;color:#5C6975">{{ sheetDesc }}</p></sc-if>
+        </div>
+        <button ref="{{ closeRef }}" type="button" aria-label="Close" onClick="{{ closeAll }}" style="width:44px;height:44px;margin:-8px -8px 0 0;border:0;background:transparent;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#5C6975;flex:none" style-hover="background:#F0F3F5"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+      </div>
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:20px">
+
+        <sc-if value="{{ sheetIsOrder }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;gap:12px;align-items:center">
+            <div style="width:48px;height:48px;border-radius:12px;background:#F0F3F5;display:flex;align-items:center;justify-content:center;flex:none">{{ sheetOrder.icon }}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:500">{{ sheetOrder.name }}</div>
+              <div style="font-size:12px;line-height:18px;color:#5C6975">{{ sheetOrder.qty }}</div>
+            </div>
+            <span style="{{ sheetOrder.badgeStyle }}">{{ sheetOrder.statusLabel }}</span>
+          </div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <button type="button" onClick="{{ sheetOrder.ask }}" style="flex:1;min-width:150px;height:44px;padding:0 16px;border:0;background:#0F766E;color:#fff;border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;transition:background 150ms" style-hover="background:#115E59">Ask about this order</button>
+            <sc-if value="{{ sheetOrder.canChange }}" hint-placeholder-val="{{ false }}">
+              <button type="button" onClick="{{ sheetOrder.change }}" style="flex:1;min-width:150px;height:44px;padding:0 16px;border:1px solid #DFE5E9;background:#fff;color:#17232B;border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;transition:background 150ms" style-hover="background:#F0F3F5">Change delivery address</button>
+            </sc-if>
+          </div>
+          <div style="height:1px;background:#DFE5E9"></div>
+          <dl style="margin:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 16px;font-size:14px;line-height:22px">
+            <dt style="color:#5C6975">Total</dt><dd style="margin:0;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-variant-numeric:tabular-nums;font-weight:500">{{ sheetOrder.total }}</dd>
+            <dt style="color:#5C6975">Currency</dt><dd style="margin:0">MYR</dd>
+            <dt style="color:#5C6975">Deliver to</dt><dd style="margin:0">{{ sheetOrder.addressLabel }} · Kuala Lumpur</dd>
+            <dt style="color:#5C6975">Version</dt><dd style="margin:0;font-family:ui-monospace,SFMono-Regular,Consolas,monospace">{{ sheetOrder.version }}</dd>
+          </dl>
+          <div style="height:1px;background:#DFE5E9"></div>
+          <div>
+            <h3 style="margin:0 0 12px;font-size:14px;line-height:20px;font-weight:600">Timeline</h3>
+            <ol style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column">
+              <sc-for list="{{ sheetOrder.timeline }}" as="t" hint-placeholder-count="0">
+                <li style="display:grid;grid-template-columns:20px minmax(0,1fr);gap:0 12px">
+                  <div style="display:flex;flex-direction:column;align-items:center">
+                    <span style="{{ t.dotStyle }}">{{ t.dotIcon }}</span>
+                    <sc-if value="{{ t.hasLine }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="width:2px;flex:1;min-height:12px;background:#DFE5E9;margin:2px 0"></span></sc-if>
+                  </div>
+                  <div style="padding-bottom:12px">
+                    <div style="{{ t.labelStyle }}">{{ t.label }}</div>
+                    <div style="font-size:12px;line-height:18px;color:#5C6975">{{ t.time }}</div>
+                  </div>
+                </li>
+              </sc-for>
+            </ol>
+          </div>
+
+        </sc-if>
+
+        <sc-if value="{{ sheetIsAction }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ sheetAction.resultStyle }}">
+            <span aria-hidden="true" style="display:flex;flex:none;margin-top:2px">{{ sheetAction.icon }}</span>
+            <div style="min-width:0">
+              <div style="font-weight:600">{{ sheetAction.outcomeLabel }}</div>
+              <div style="font-size:13px;line-height:20px;overflow-wrap:anywhere">{{ sheetAction.summary }}</div>
+            </div>
+          </div>
+          <dl style="margin:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 16px;font-size:14px;line-height:22px">
+            <dt style="color:#5C6975">Action</dt><dd style="margin:0">{{ sheetAction.typeLabel }}</dd>
+            <dt style="color:#5C6975">Time</dt><dd style="margin:0">{{ sheetAction.fullTime }}</dd>
+            <dt style="color:#5C6975">Reason</dt><dd style="margin:0;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:13px;overflow-wrap:anywhere">{{ sheetAction.reasonCode }}</dd>
+            <dt style="color:#5C6975">ID</dt><dd style="margin:0;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:13px">{{ sheetAction.id }}</dd>
+          </dl>
+          <details style="border:1px solid #DFE5E9;border-radius:12px;padding:0 16px">
+            <summary style="cursor:pointer;padding:12px 0;font-weight:500;list-style:none;display:flex;justify-content:space-between;align-items:center">Provider evidence <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C6975" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></summary>
+            <dl style="margin:0;padding:0 0 16px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 16px;font-size:13px;line-height:20px">
+              <dt style="color:#5C6975">Source</dt><dd style="margin:0;font-family:ui-monospace,SFMono-Regular,Consolas,monospace">{{ sheetAction.evidenceSource }}</dd>
+              <dt style="color:#5C6975">Agent DID</dt><dd style="margin:0;color:#5C6975">Not available</dd>
+              <dt style="color:#5C6975">Provider reference</dt><dd style="margin:0;color:#5C6975">Not available</dd>
+              <dt style="color:#5C6975">Verified</dt><dd style="margin:0">No</dd>
+            </dl>
+          </details>
+
+        </sc-if>
+
+        <sc-if value="{{ sheetIsDemo }}" hint-placeholder-val="{{ false }}">
+          <dl style="margin:0;display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
+              <div><dt style="font-weight:500">API</dt><dd style="margin:0;font-size:12px;line-height:18px;color:#5C6975">HTTP mock · same contract as the live backend</dd></div>
+              <span style="font-size:12px;line-height:18px;padding:3px 10px;border-radius:999px;background:#FFF4E8;color:#9A3412;white-space:nowrap">Mock</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
+              <div><dt style="font-weight:500">Model</dt><dd style="margin:0;font-size:12px;line-height:18px;color:#5C6975">azure_openai · deployment not configured</dd></div>
+              <span style="font-size:12px;line-height:18px;padding:3px 10px;border-radius:999px;background:#FFF4E8;color:#9A3412;white-space:nowrap">Mock</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
+              <div><dt style="font-weight:500">Terminal 3</dt><dd style="margin:0;font-size:12px;line-height:18px;color:#5C6975">Identity not verified · no agent DID</dd></div>
+              <span style="font-size:12px;line-height:18px;padding:3px 10px;border-radius:999px;background:#F0F3F5;color:#5C6975;white-space:nowrap">Not connected</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
+              <div><dt style="font-weight:500">Orders</dt><dd style="margin:0;font-size:12px;line-height:18px;color:#5C6975">Fixed fixtures for customer Alex</dd></div>
+              <span style="font-size:12px;line-height:18px;padding:3px 10px;border-radius:999px;background:#F0F3F5;color:#5C6975;white-space:nowrap">Synthetic</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
+              <div><dt style="font-weight:500">Session</dt><dd style="margin:0;font-size:12px;line-height:18px;color:#5C6975">{{ conversationId }}</dd></div>
+            </div>
+          </dl>
+        </sc-if>
+
+      </div>
+    </aside>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;mockDelayMs&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:600,&quot;min&quot;:0,&quot;max&quot;:3000,&quot;step&quot;:100,&quot;unit&quot;:&quot;ms&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Mock API&quot;},&quot;confirmOutcome&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;succeeded&quot;,&quot;options&quot;:[&quot;succeeded&quot;,&quot;failed&quot;,&quot;outcome_unknown&quot;,&quot;expired&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Mock API&quot;},&quot;modelFailure&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;none&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;timeout&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Mock API&quot;}}">
+const ICONS = {
+  package: '<path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
+  keyboard: '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="M6 8h.001"/><path d="M10 8h.001"/><path d="M14 8h.001"/><path d="M18 8h.001"/><path d="M8 12h.001"/><path d="M12 12h.001"/><path d="M16 12h.001"/><path d="M7 16h10"/>',
+  laptop: '<path d="M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9m16 0H4m16 0 1.28 2.55a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45L4 16"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  checkCircle: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+  shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+  alert: '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
+  help: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
+  loader: '<path d="M21 12a9 9 0 1 1-6.219-8.56"/>',
+  truck: '<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
+  minus: '<path d="M5 12h14"/>',
+};
+function icon(name, size, color, style) {
+  return React.createElement('svg', {
+    width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color || 'currentColor',
+    strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', style: Object.assign({ flex: 'none', display: 'block' }, style || {}),
+    dangerouslySetInnerHTML: { __html: ICONS[name] || '' },
+  });
+}
+const OWNED = ['ORD-1001', 'ORD-1002'];
+const FIXTURES = [
+  { id: 'ORD-1001', status: 'shipped', currency: 'MYR', total_minor: 12900, items: [{ name: 'Wireless Keyboard', quantity: 1, unit_price_minor: 12900 }], address_ref: 'addr_alex_home', address_label: 'Home', version: 1, icon: 'keyboard',
+    timeline: [{ status: 'placed', label: 'Order placed', occurred_at: '2026-09-05T02:12:00Z' }, { status: 'processing', label: 'Processing', occurred_at: '2026-09-05T06:30:00Z' }, { status: 'shipped', label: 'Shipped', occurred_at: '2026-09-06T01:05:00Z' }] },
+  { id: 'ORD-1002', status: 'processing', currency: 'MYR', total_minor: 8900, items: [{ name: 'Laptop Stand', quantity: 1, unit_price_minor: 8900 }], address_ref: 'addr_alex_home', address_label: 'Home', version: 1, icon: 'laptop',
+    timeline: [{ status: 'placed', label: 'Order placed', occurred_at: '2026-09-06T08:40:00Z' }, { status: 'processing', label: 'Processing', occurred_at: '2026-09-07T00:15:00Z' }] },
+];
+const ADDRESSES = { Home: 'addr_alex_home', Office: 'addr_alex_office' };
+const TZ = 'Asia/Kuala_Lumpur';
+const money = (m) => 'RM' + (m / 100).toFixed(2);
+const fmtTime = (iso) => new Date(iso).toLocaleString('en-MY', { timeZone: TZ, day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+const fmtClock = (iso) => new Date(iso).toLocaleTimeString('en-MY', { timeZone: TZ, hour: '2-digit', minute: '2-digit' });
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const BADGE = 'display:inline-flex;align-items:center;font-size:12px;line-height:18px;padding:2px 10px;border-radius:999px;font-weight:500;white-space:nowrap;';
+const STATUS_BADGE = {
+  processing: BADGE + 'background:#F0F3F5;color:#17232B',
+  shipped: BADGE + 'background:#E7F4F1;color:#115E59',
+  delivered: BADGE + 'background:#ECFDF3;color:#166534',
+};
+const TONE = {
+  success: { bg: '#ECFDF3', fg: '#166534', border: '#ABEFC6', icon: 'checkCircle' },
+  warning: { bg: '#FFF4E8', fg: '#9A3412', border: '#FEDF89', icon: 'shield' },
+  error: { bg: '#FEF3F2', fg: '#B42318', border: '#FECDCA', icon: 'alert' },
+  neutral: { bg: '#F0F3F5', fg: '#17232B', border: '#DFE5E9', icon: 'minus' },
+};
+const OUTCOME_TONE = { allowed: 'success', denied: 'warning', failed: 'error', outcome_unknown: 'warning' };
+const OUTCOME_LABEL = { allowed: 'Allowed', denied: 'Denied', failed: 'Failed', outcome_unknown: 'Outcome unknown' };
+const TYPE_LABEL = { order_lookup: 'Order lookup', address_change: 'Address change', agent_refusal: 'Assistant refusal' };
+const PANEL = 'display:flex;flex-direction:column;min-width:0;min-height:0;background:#FFFFFF;border:1px solid #DFE5E9;border-radius:16px;overflow:hidden;';
+const SHEET = 'position:fixed;top:0;bottom:0;width:min(420px,100vw);background:#fff;z-index:50;display:flex;flex-direction:column;box-shadow:0 12px 36px rgba(23,35,43,0.12);animation:pgIn 220ms ease-out;';
+
+class Component extends DCLogic {
+  state = {
+    width: typeof window !== 'undefined' ? window.innerWidth : 1440,
+    ordersLoading: true, orders: [], filter: 'All', selectedOrderId: null,
+    conversationId: 'conv_demo_1', messages: [], actions: [], proposals: {},
+    pending: false, failed: null, input: '', sheet: null, panel: null, now: Date.now(),
+    search: '', contextOrderId: null, menuOpen: false, highlightId: null,
+  };
+  seq = 0;
+  listRef = React.createRef();
+  inputRef = React.createRef();
+  closeRef = React.createRef();
+  lastFocus = null;
+
+  componentDidMount() {
+    this.onResize = () => this.setState({ width: window.innerWidth });
+    window.addEventListener('resize', this.onResize);
+    this.onKey = (e) => { if (e.key === 'Escape' && (this.state.sheet || this.state.panel || this.state.menuOpen)) this.closeAll(); };
+    window.addEventListener('keydown', this.onKey);
+    this.tick = setInterval(() => this.expireProposals(), 5000);
+    this.prevState = this.state;
+    this.delay().then(() => this.setState({ ordersLoading: false, orders: FIXTURES.map((o) => ({ ...o, items: o.items.map((i) => ({ ...i })), timeline: o.timeline.slice() })) }));
+  }
+  componentWillUnmount() {
+    window.removeEventListener('resize', this.onResize);
+    window.removeEventListener('keydown', this.onKey);
+    clearInterval(this.tick);
+    document.body.style.overflow = '';
+  }
+  nearBottom() {
+    const el = this.listRef.current;
+    return el ? el.scrollHeight - el.scrollTop - el.clientHeight < 160 : true;
+  }
+  scrollToBottom() { const el = this.listRef.current; if (el) el.scrollTop = el.scrollHeight; }
+  componentDidUpdate() {
+    const prev = this.prevState || this.state;
+    this.prevState = this.state;
+    const open = !!(this.state.sheet || this.state.panel);
+    const wasOpen = !!(prev.sheet || prev.panel);
+    if (open !== wasOpen) document.body.style.overflow = open ? 'hidden' : '';
+    if (this.state.sheet && !prev.sheet) {
+      this.lastFocus = document.activeElement;
+      setTimeout(() => this.closeRef.current && this.closeRef.current.focus(), 30);
+    }
+    if (!this.state.sheet && prev.sheet && this.lastFocus && this.lastFocus.focus) this.lastFocus.focus();
+  }
+
+  // ---- mock API (same shapes as the live contract) ----
+  delay(ms) { const d = ms != null ? ms : Number(this.props.mockDelayMs ?? 600); return new Promise((r) => setTimeout(r, d)); }
+  nextId(p) { this.seq += 1; return p + '_' + this.seq; }
+  nowIso() { return new Date().toISOString(); }
+  mkAction(type, outcome, reason, summary) {
+    return { id: this.nextId('act'), conversation_id: this.state.conversationId, type, outcome, reason_code: reason, summary, created_at: this.nowIso(), evidence: { source: 'mock', agent_did: null, provider_reference: null, verified: false } };
+  }
+  resultCard(outcome, reason, title, description, actionId) { return { type: 'action_result', outcome, reason_code: reason, title, description, action_id: actionId }; }
+
+  async apiPostMessage(text, contextId) {
+    await this.delay();
+    if ((this.props.modelFailure ?? 'none') === 'timeout') { const e = new Error('MODEL_TIMEOUT'); e.code = 'MODEL_TIMEOUT'; throw e; }
+    const t = text.toLowerCase();
+    let ids = Array.from(new Set((text.toUpperCase().match(/ORD-\d{4}/g) || [])));
+    if (!ids.length && contextId && !/what can you|help with|capabilit|what do you do/.test(t)) ids = [contextId];
+    const wantsChange = /(office|home|address|change|update|redirect|reroute|send .* to|deliver .* to|instead)/.test(t);
+    const injection = /(ignore (all )?(the |your )?(rules|instructions)|all customer|customer phone|phone numbers|every customer|export|database)/.test(t);
+    const msg = (content) => ({ id: this.nextId('msg'), role: 'assistant', content });
+    const actions = []; const cards = [];
+    const ownedIds = ids.filter((i) => OWNED.includes(i));
+    const foreign = ids.filter((i) => !OWNED.includes(i));
+
+    if (injection && ownedIds.length === 0) {
+      const a = this.mkAction('agent_refusal', 'denied', 'AGENT_REFUSAL', 'Declined a request outside order support');
+      actions.push(a);
+      cards.push(this.resultCard('denied', 'AGENT_REFUSAL', 'Request not supported', 'I can only look up or update orders that belong to your account. Other customers\u2019 information isn\u2019t available.', a.id));
+      return { message: msg('I can\u2019t help with that. I\u2019m limited to orders in your account.'), cards, actions };
+    }
+    if (foreign.length) {
+      const a = this.mkAction('order_lookup', 'denied', 'ORDER_UNAVAILABLE', 'Lookup for ' + foreign[0] + ' denied');
+      actions.push(a);
+      cards.push(this.resultCard('denied', 'ORDER_UNAVAILABLE', 'Order unavailable', 'This order isn\u2019t available in your account. You can only view orders placed with this account.', a.id));
+      return { message: msg('I couldn\u2019t access ' + foreign[0] + '.'), cards, actions };
+    }
+    if (ownedIds.length) {
+      const order = this.state.orders.find((o) => o.id === ownedIds[0]);
+      if (wantsChange) {
+        if (order.status !== 'processing') {
+          const a = this.mkAction('address_change', 'denied', 'ORDER_NOT_EDITABLE', 'Change to ' + order.id + ' denied \u2014 already shipped');
+          actions.push(a);
+          cards.push(this.resultCard('denied', 'ORDER_NOT_EDITABLE', 'Cannot update this order', 'Shipped orders can\u2019t be updated. ' + order.id + ' shipped on ' + fmtTime(order.timeline[order.timeline.length - 1].occurred_at) + ' and is heading to your ' + order.address_label + ' address.', a.id));
+          return { message: msg(order.id + ' has already shipped, so its delivery address can\u2019t be changed.'), cards, actions };
+        }
+        let target = /office/.test(t) ? 'Office' : /home/.test(t) ? 'Home' : (order.address_label === 'Home' ? 'Office' : 'Home');
+        if (target === order.address_label) {
+          const a = this.mkAction('order_lookup', 'allowed', 'ORDER_RETURNED', 'Looked up ' + order.id);
+          actions.push(a);
+          return { message: msg(order.id + ' is already set to deliver to your ' + target + ' address. No change is needed.'), cards, actions };
+        }
+        const a = this.mkAction('address_change', 'allowed', 'PROPOSAL_CREATED', 'Proposed moving ' + order.id + ' to ' + target);
+        actions.push(a);
+        const prop = { id: this.nextId('prop'), order_id: order.id, from: order.address_label, to: target, target_address_ref: ADDRESSES[target], expected_order_version: order.version, status: 'pending', expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(), idem: null, retryable: false };
+        cards.push({ type: 'address_change_proposal', proposal_id: prop.id });
+        return { message: msg('I can update ' + order.id + ' to your saved ' + target + ' address. Please confirm.'), cards, actions, proposal: prop };
+      }
+      const a = this.mkAction('order_lookup', 'allowed', 'ORDER_RETURNED', 'Looked up ' + order.id);
+      actions.push(a);
+      cards.push({ type: 'order_summary', order_id: order.id });
+      const last = order.timeline[order.timeline.length - 1];
+      const line = order.status === 'shipped' ? 'It shipped on ' + fmtTime(last.occurred_at) + ' and is on its way to your ' + order.address_label + ' address.' : 'It\u2019s still being processed and will ship to your ' + order.address_label + ' address.';
+      return { message: msg('Here\u2019s the latest on ' + order.id + '. ' + line), cards, actions };
+    }
+    if (/what can you|help with|capabilit|what do you do/.test(t)) {
+      return { message: msg('I can track your orders and move the delivery address to one of your saved addresses (Home or Office) before an order ships.\n\nI can\u2019t add new addresses, change payment, or access other accounts.'), cards, actions };
+    }
+    if (/address|office|change|update|redirect/.test(t)) {
+      return { message: msg('Which order should I update? Only orders that haven\u2019t shipped can be changed \u2014 ORD-1002 (Laptop Stand) is still processing.'), cards, actions };
+    }
+    if (/track|where|status|order|deliver|parcel|package/.test(t)) {
+      return { message: msg('Which order would you like to track? You have ORD-1001 (Wireless Keyboard) and ORD-1002 (Laptop Stand).'), cards, actions };
+    }
+    return { message: msg('I can help track an order or update its delivery address before it ships. Which order is this about?'), cards, actions };
+  }
+
+  async apiConfirm(prop) {
+    await this.delay();
+    const mode = this.props.confirmOutcome ?? 'succeeded';
+    if (mode === 'expired') { const e = new Error('PROPOSAL_EXPIRED'); e.code = 'PROPOSAL_EXPIRED'; throw e; }
+    if (mode === 'failed') { const e = new Error('TERMINAL3_UNAVAILABLE'); e.code = 'TERMINAL3_UNAVAILABLE'; e.retryable = true; throw e; }
+    if (mode === 'outcome_unknown') { const e = new Error('ACTION_OUTCOME_UNKNOWN'); e.code = 'ACTION_OUTCOME_UNKNOWN'; throw e; }
+    const order = this.state.orders.find((o) => o.id === prop.order_id);
+    if (!order || order.version !== prop.expected_order_version) { const e = new Error('ORDER_CHANGED'); e.code = 'ORDER_CHANGED'; throw e; }
+    return { proposal_id: prop.id, status: 'succeeded', order: { ...order, address_ref: prop.target_address_ref, address_label: prop.to, version: order.version + 1 } };
+  }
+
+  // ---- state transitions ----
+  send = (text, clientId) => {
+    const content = (text || '').trim();
+    if (!content || this.state.pending) return;
+    const cid = clientId || this.nextId('cm');
+    const already = clientId && this.state.messages.some((m) => m.client_message_id === cid);
+    const userMsg = { id: this.nextId('msg'), role: 'user', content, client_message_id: cid, created_at: this.nowIso() };
+    this.setState((s) => ({ messages: already ? s.messages : s.messages.concat(userMsg), pending: true, failed: null, input: '' }), () => this.scrollToBottom());
+    if (this.inputRef.current) { this.inputRef.current.style.height = '58px'; this.inputRef.current.style.overflowY = 'hidden'; }
+    const convAtSend = this.state.conversationId;
+    this.apiPostMessage(content, this.state.contextOrderId).then((turn) => {
+      if (this.state.conversationId !== convAtSend) return;
+      const message = { ...turn.message, cards: turn.cards, created_at: this.nowIso(), action_ids: turn.actions.map((a) => a.id) };
+      if (turn.proposal) turn.proposal.message_id = message.id;
+      const stick = this.nearBottom();
+      this.setState((s) => ({
+        pending: false,
+        messages: s.messages.concat(message),
+        actions: turn.actions.concat(s.actions),
+        proposals: turn.proposal ? { ...s.proposals, [turn.proposal.id]: turn.proposal } : s.proposals,
+      }), () => { if (stick) this.scrollToBottom(); });
+    }).catch((err) => {
+      if (this.state.conversationId !== convAtSend) return;
+      const stick = this.nearBottom();
+      this.setState({ pending: false, failed: { text: content, clientId: cid, code: err.code || 'MODEL_UNAVAILABLE' } }, () => { if (stick) this.scrollToBottom(); });
+    });
+  };
+  setProposal(id, patch) { const stick = this.nearBottom(); this.setState((s) => ({ proposals: { ...s.proposals, [id]: { ...s.proposals[id], ...patch } } }), () => { if (stick) this.scrollToBottom(); }); }
+  confirm = (id) => {
+    const prop = this.state.proposals[id];
+    if (!prop || !(prop.status === 'pending' || (prop.status === 'failed' && prop.retryable))) return;
+    const idem = prop.idem || this.nextId('idem');
+    this.setProposal(id, { status: 'executing', idem });
+    this.apiConfirm(prop).then((res) => {
+      const a = this.mkAction('address_change', 'allowed', 'ADDRESS_UPDATED', 'Updated ' + res.order.id + ' to ' + res.order.address_label);
+      const updated = { ...res.order, updated_at: this.nowIso() };
+      this.setState((s) => ({
+        orders: s.orders.map((o) => (o.id === updated.id ? updated : o)),
+        proposals: { ...s.proposals, [id]: { ...s.proposals[id], status: 'succeeded', action_id: a.id } },
+        actions: [a].concat(s.actions),
+      }));
+    }).catch((err) => {
+      if (err.code === 'PROPOSAL_EXPIRED') { this.setProposal(id, { status: 'expired' }); return; }
+      if (err.code === 'ORDER_CHANGED') { this.setProposal(id, { status: 'denied', reason: 'This order changed since the proposal was made. Please ask again.' }); return; }
+      const unknown = err.code === 'ACTION_OUTCOME_UNKNOWN';
+      const a = this.mkAction('address_change', unknown ? 'outcome_unknown' : 'failed', err.code, (unknown ? 'Update of ' : 'Failed to update ') + prop.order_id + ' to ' + prop.to + (unknown ? ' not confirmed' : ''));
+      this.setState((s) => ({
+        proposals: { ...s.proposals, [id]: { ...s.proposals[id], status: unknown ? 'outcome_unknown' : 'failed', retryable: !!err.retryable, action_id: a.id } },
+        actions: [a].concat(s.actions),
+      }));
+    });
+  };
+  cancel = (id) => {
+    const prop = this.state.proposals[id];
+    if (!prop || prop.status !== 'pending') return;
+    this.setProposal(id, { status: 'cancelling' });
+    this.delay(300).then(() => this.setProposal(id, { status: 'cancelled' }));
+  };
+  expireProposals() {
+    const now = Date.now();
+    const expired = Object.values(this.state.proposals).filter((p) => p.status === 'pending' && new Date(p.expires_at).getTime() <= now);
+    if (expired.length) this.setState((s) => { const n = { ...s.proposals }; expired.forEach((p) => { n[p.id] = { ...n[p.id], status: 'expired' }; }); return { proposals: n, now }; });
+    else this.setState({ now });
+  }
+  newConversation = () => {
+    if (this.newConvDisabled()) return;
+    this.delay(250).then(() => this.setState({ conversationId: this.nextId('conv'), messages: [], actions: [], proposals: {}, failed: null, pending: false, contextOrderId: null, highlightId: null }));
+  };
+  newConvDisabled() { return this.state.pending || Object.values(this.state.proposals).some((p) => p.status === 'executing'); }
+  closeAll = () => this.setState({ sheet: null, panel: null, menuOpen: false });
+  highlightMessage(msgId) {
+    if (!msgId) return;
+    clearTimeout(this.hlTimer);
+    this.setState({ highlightId: msgId }, () => {
+      const list = this.listRef.current, el = document.getElementById('pg-msg-' + msgId);
+      if (list && el) list.scrollTop = el.getBoundingClientRect().top - list.getBoundingClientRect().top + list.scrollTop - 16;
+    });
+    this.hlTimer = setTimeout(() => this.setState({ highlightId: null }), 1800);
+  }
+  messageForAction(a) {
+    const m = this.state.messages.find((x) => (x.action_ids || []).includes(a.id));
+    if (m) return m.id;
+    const p = Object.values(this.state.proposals).find((x) => x.action_id === a.id);
+    return p ? p.message_id : null;
+  }
+  askOrder(o) { this.closeAll(); this.setState({ contextOrderId: o.id }); this.send('Where is order ' + o.id + '?'); }
+  changeOrder(o) { const target = o.address_label === 'Home' ? 'Office' : 'Home'; this.closeAll(); this.setState({ contextOrderId: o.id }); this.send('Send ' + o.id + ' to my ' + target + ' address instead.'); }
+
+  // ---- presenters ----
+  presentOrder(o) {
+    const last = o.timeline.length - 1;
+    return {
+      id: o.id, name: o.items[0].name, qty: 'Qty ' + o.items[0].quantity, total: money(o.total_minor), statusLabel: cap(o.status), badgeStyle: STATUS_BADGE[o.status] || STATUS_BADGE.processing,
+      icon: icon(o.icon, 24, '#17232B'), addressLabel: o.address_label, version: 'v' + o.version,
+      selected: this.state.selectedOrderId === o.id,
+      hasUpdate: !!o.updated_at && this.state.now - new Date(o.updated_at).getTime() < 15 * 60 * 1000,
+      updateText: 'Updated · ' + o.address_label,
+      canChange: o.status === 'processing',
+      ask: () => this.askOrder(o), change: () => this.changeOrder(o),
+      cardStyle: 'width:100%;text-align:left;padding:16px;border-radius:16px;cursor:pointer;color:#17232B;font:inherit;transition:background 150ms,border-color 150ms;' + (this.state.selectedOrderId === o.id ? 'background:#E7F4F1;border:1px solid #0F766E;' : 'background:#fff;border:1px solid #DFE5E9;'),
+      open: () => this.setState({ selectedOrderId: o.id, contextOrderId: o.id, sheet: { type: 'order', id: o.id }, panel: null, menuOpen: false }),
+      timeline: o.timeline.map((t, i) => {
+        const cur = i === last;
+        return {
+          label: t.label, time: fmtTime(t.occurred_at), hasLine: i < last,
+          dotStyle: 'width:20px;height:20px;border-radius:999px;display:flex;align-items:center;justify-content:center;flex:none;' + (cur ? 'background:#0F766E;color:#fff' : 'background:#E7F4F1;color:#115E59'),
+          dotIcon: icon(cur && t.status === 'shipped' ? 'truck' : 'check', 12),
+          labelStyle: 'font-size:14px;line-height:20px;' + (cur ? 'font-weight:600;color:#0F766E' : 'font-weight:500;color:#17232B'),
+        };
+      }),
+    };
+  }
+  presentProposal(ref) {
+    const p = this.state.proposals[ref.proposal_id];
+    if (!p) return { isProposal: true, orderId: ref.proposal_id, from: '', to: '' };
+    const mins = Math.max(0, Math.ceil((new Date(p.expires_at).getTime() - this.state.now) / 60000));
+    const banner = {
+      succeeded: ['success', 'Address updated', p.order_id + ' will now ship to your ' + p.to + ' address.'],
+      cancelled: ['neutral', 'Cancelled', 'No changes were made to ' + p.order_id + '.'],
+      cancelling: ['neutral', 'Cancelling\u2026', ''],
+      expired: ['warning', 'Proposal expired', 'This request expired. Ask again to request a new change.'],
+      denied: ['warning', 'Cannot update this order', p.reason || 'The order can no longer be changed.'],
+      failed: ['error', 'Could not update address', p.retryable ? 'The address service didn\u2019t respond. You can try again.' : 'The address service returned an error.'],
+      outcome_unknown: ['warning', 'Update status not confirmed', 'The result of this update couldn\u2019t be confirmed. We won\u2019t retry automatically.'],
+    }[p.status];
+    const tone = banner ? TONE[banner[0]] : null;
+    const ord = this.state.orders.find((o) => o.id === p.order_id);
+    return {
+      isProposal: true, orderId: p.order_id, orderName: ord ? ord.items[0].name : '', from: p.from, to: p.to,
+      isPending: p.status === 'pending', isExecuting: p.status === 'executing',
+      expiresText: mins > 0 ? 'Expires in ' + mins + ' min' : 'Expiring\u2026',
+      confirm: () => this.confirm(p.id), cancel: () => this.cancel(p.id),
+      hasBanner: !!banner, bannerTitle: banner ? banner[1] : '', bannerText: banner ? banner[2] : '',
+      bannerStyle: tone ? 'display:flex;gap:12px;align-items:center;padding:12px 16px;border-radius:12px;background:' + tone.bg + ';color:' + tone.fg + ';border:1px solid ' + tone.border : '',
+      bannerIcon: tone ? icon(tone.icon, 18) : null,
+      canRetry: p.status === 'failed' && p.retryable,
+    };
+  }
+  presentResult(c) {
+    const tone = TONE[OUTCOME_TONE[c.outcome] || 'neutral'];
+    let ic = tone.icon;
+    if (c.reason_code === 'ORDER_NOT_EDITABLE') ic = 'package';
+    const why = {
+      ORDER_UNAVAILABLE: 'Every lookup is matched against the signed-in account before any details are returned. That order isn\u2019t linked to your account, so the assistant can\u2019t confirm whether it exists or who it belongs to.',
+      ORDER_NOT_EDITABLE: 'Delivery addresses can only be changed while an order is still processing. Once the parcel is handed to the carrier, the destination is locked.',
+      AGENT_REFUSAL: 'The assistant only has two tools: look up your orders and propose an address change to one of your saved addresses. It has no access to other customers\u2019 data and no export capability.',
+    }[c.reason_code];
+    return { isResult: true, title: c.title, description: c.description, icon: icon(ic, 18), hasWhy: c.outcome === 'denied' && !!why, why: why || '', resultStyle: 'display:flex;gap:12px;padding:12px 16px;border-radius:12px;max-width:480px;background:' + tone.bg + ';color:' + tone.fg + ';border:1px solid ' + tone.border };
+  }
+  presentAction(a) {
+    const tone = TONE[OUTCOME_TONE[a.outcome] || 'neutral'];
+    return {
+      id: a.id, typeLabel: TYPE_LABEL[a.type] || a.type, summary: a.summary, time: fmtClock(a.created_at), fullTime: fmtTime(a.created_at), reasonCode: a.reason_code,
+      outcomeLabel: OUTCOME_LABEL[a.outcome], outcomeStyle: 'color:' + tone.fg + ';font-weight:500', icon: icon(tone.icon, 18, tone.fg),
+      evidenceSource: a.evidence.source,
+      resultStyle: 'display:flex;gap:12px;padding:12px 16px;border-radius:12px;background:' + tone.bg + ';color:' + tone.fg + ';border:1px solid ' + tone.border,
+      open: () => { this.setState({ sheet: { type: 'action', id: a.id }, panel: null, menuOpen: false }); this.highlightMessage(this.messageForAction(a)); },
+    };
+  }
+
+  renderVals() {
+    const s = this.state;
+    const layout = s.width >= 1280 ? 'desktop' : s.width >= 900 ? 'tablet' : 'mobile';
+    const isMobile = layout === 'mobile', isDesktop = layout === 'desktop';
+    const pad = isMobile ? 12 : 24;
+    const cols = isDesktop ? '264px minmax(0,1fr) 300px' : layout === 'tablet' ? '244px minmax(0,1fr)' : 'minmax(0,1fr)';
+    const ordersPanelStyle = !isMobile ? PANEL : (s.panel === 'orders' ? SHEET + 'left:0;border-right:1px solid #DFE5E9;border-radius:0 20px 20px 0' : 'display:none');
+    const actionsPanelStyle = isDesktop ? PANEL : (s.panel === 'activity' ? SHEET + 'right:0;border-left:1px solid #DFE5E9;border-radius:20px 0 0 20px' : 'display:none');
+    const orders = s.orders.map((o) => this.presentOrder(o));
+    const q = s.search.trim().toLowerCase();
+    const visibleOrders = orders.filter((o) => (s.filter === 'All' || o.statusLabel === s.filter) && (!q || o.id.toLowerCase().includes(q) || o.name.toLowerCase().includes(q)));
+    const ctxOrder = s.contextOrderId ? s.orders.find((o) => o.id === s.contextOrderId) : null;
+    const filters = ['All', 'Processing', 'Shipped'].map((f) => ({
+      label: f, active: s.filter === f, select: () => this.setState({ filter: f }),
+      style: 'height:32px;padding:0 12px;border-radius:999px;font-size:12px;line-height:18px;font-weight:500;cursor:pointer;transition:background 150ms;' + (s.filter === f ? 'background:#17232B;color:#fff;border:1px solid #17232B' : 'background:#fff;color:#5C6975;border:1px solid #DFE5E9'),
+    }));
+    const messages = s.messages.map((m) => ({
+      id: m.id, domId: 'pg-msg-' + m.id, isUser: m.role === 'user', isAgent: m.role === 'assistant', content: m.content, time: m.created_at ? fmtClock(m.created_at) : '',
+      rowStyle: 'display:flex;animation:pgIn 180ms ease-out;margin:-8px -8px;padding:8px;border-radius:16px;transition:background 400ms;' + (m.role === 'user' ? 'justify-content:flex-end;' : 'justify-content:flex-start;') + (s.highlightId === m.id ? 'background:#F0F3F5' : 'background:transparent'),
+      cards: (m.cards || []).map((c) => {
+        if (c.type === 'order_summary') { const o = s.orders.find((x) => x.id === c.order_id); return { isOrder: !!o, order: o ? this.presentOrder(o) : null }; }
+        if (c.type === 'address_change_proposal') return this.presentProposal(c);
+        return this.presentResult(c);
+      }),
+    }));
+    const dot = (i) => React.createElement('span', { key: i, style: { width: 5, height: 5, borderRadius: 999, background: '#5C6975', display: 'inline-block', animation: 'pgDot 1.2s ' + (i * 0.2) + 's infinite ease-in-out' } });
+    const dots = React.createElement('span', { 'aria-hidden': true, style: { display: 'inline-flex', gap: 4, alignItems: 'center' } }, [0, 1, 2].map(dot));
+    const spinner = icon('loader', 16, '#fff', { animation: 'pgSpin 900ms linear infinite' });
+    const newConvDisabled = this.newConvDisabled();
+    const canSend = !!s.input.trim() && !s.pending;
+    const sheetOrderRaw = s.sheet && s.sheet.type === 'order' ? s.orders.find((o) => o.id === s.sheet.id) : null;
+    const sheetActionRaw = s.sheet && s.sheet.type === 'action' ? s.actions.find((a) => a.id === s.sheet.id) : null;
+    const sheetOrder = sheetOrderRaw ? this.presentOrder(sheetOrderRaw) : null;
+    const sheetAction = sheetActionRaw ? this.presentAction(sheetActionRaw) : null;
+    const sheetIsDemo = !!(s.sheet && s.sheet.type === 'demo');
+    const failedText = s.failed ? (s.failed.code === 'MODEL_TIMEOUT' ? 'The assistant took too long to respond.' : 'The assistant is unavailable right now.') : '';
+    return {
+      isMobile, isDesktop, notMobile: !isMobile, notDesktop: !isDesktop,
+      mainStyle: 'display:grid;grid-template-columns:' + cols + ';gap:20px;max-width:1600px;width:100%;margin:0 auto;padding:' + pad + 'px;height:calc(100vh - 64px);min-height:0',
+      ordersPanelStyle, actionsPanelStyle,
+      orderCountText: s.ordersLoading ? '' : '· ' + s.orders.length,
+      filters, visibleOrders, ordersLoading: s.ordersLoading, ordersEmpty: !s.ordersLoading && visibleOrders.length === 0,
+      clearFilter: () => this.setState({ filter: 'All', search: '' }),
+      search: s.search, onSearch: (e) => this.setState({ search: e.target.value }),
+      ordersEmptyText: q ? 'No orders match \u201c' + s.search.trim() + '\u201d.' : 'No orders match this filter.',
+      hasContext: !!ctxOrder, contextId: ctxOrder ? ctxOrder.id : '', contextName: ctxOrder ? ctxOrder.items[0].name : '', clearContext: () => this.setState({ contextOrderId: null }),
+      menuOpen: s.menuOpen, toggleMenu: () => this.setState({ menuOpen: !s.menuOpen }), closeMenu: () => this.setState({ menuOpen: false }),
+      menuNewConversation: () => { this.setState({ menuOpen: false }); this.newConversation(); },
+      menuNewConvStyle: 'width:100%;text-align:left;height:40px;padding:0 12px;border:0;background:transparent;border-radius:8px;color:#17232B;font-size:14px;font-weight:500;display:flex;align-items:center;' + (this.newConvDisabled() ? 'opacity:0.5;cursor:not-allowed' : 'cursor:pointer'),
+      chips: ['Track my order', 'Update delivery address', 'What can you help with?'].map((label) => ({ label, send: () => this.send(label) })),
+      showWelcome: s.messages.length === 0 && !s.pending, messages, pending: s.pending, dots, spinner,
+      hasFailed: !!s.failed, failedText, retryFailed: () => s.failed && this.send(s.failed.text, s.failed.clientId),
+      input: s.input, inputRef: this.inputRef, listRef: this.listRef, closeRef: this.closeRef,
+      onInput: (e) => { const el = e.target; this.setState({ input: el.value }); el.style.height = 'auto'; const h = Math.min(144, Math.max(58, el.scrollHeight + 2)); el.style.height = h + 'px'; el.style.overflowY = h >= 144 ? 'auto' : 'hidden'; },
+      onKeyDown: (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing && e.keyCode !== 229) { e.preventDefault(); this.send(s.input); } },
+      sendCurrent: () => this.send(s.input), sendDisabled: !canSend,
+      sendStyle: 'position:absolute;right:6px;bottom:6px;width:44px;height:44px;border:0;border-radius:10px;display:flex;align-items:center;justify-content:center;transition:background 150ms;' + (canSend ? 'background:#0F766E;color:#fff;cursor:pointer' : 'background:#F0F3F5;color:#87949E;cursor:not-allowed'),
+      newConversation: this.newConversation, newConvDisabled,
+      newConvStyle: 'height:44px;padding:0 14px;border:1px solid #DFE5E9;background:#fff;color:#17232B;border-radius:12px;font-size:14px;font-weight:500;display:flex;align-items:center;gap:8px;transition:background 150ms;' + (newConvDisabled ? 'opacity:0.5;cursor:not-allowed' : 'cursor:pointer'),
+      actions: s.actions.map((a) => this.presentAction(a)), actionsEmpty: s.actions.length === 0,
+      activityCountText: s.actions.length ? 'Activity · ' + s.actions.length : 'Activity',
+      openOrders: () => this.setState({ panel: 'orders', sheet: null }), openActivity: () => this.setState({ panel: 'activity', sheet: null }),
+      openDemo: () => this.setState({ sheet: { type: 'demo' }, panel: null, menuOpen: false }), closePanel: () => this.setState({ panel: null }), closeAll: this.closeAll,
+      overlayOpen: !!(s.sheet || s.panel), sheetOpen: !!s.sheet,
+      sheetIsOrder: !!sheetOrder, sheetIsAction: !!sheetAction, sheetIsDemo, sheetOrder, sheetAction,
+      sheetTitle: sheetOrder ? sheetOrder.id : sheetAction ? sheetAction.typeLabel : sheetIsDemo ? 'Demo details' : '',
+      sheetDesc: sheetOrder ? 'Order details' : sheetAction ? sheetAction.fullTime : sheetIsDemo ? 'Connection status' : '',
+      hasSheetDesc: true,
+      conversationId: s.conversationId,
+    };
+  }
+}
+</script>
+</body>
+</html>
