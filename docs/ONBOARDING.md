@@ -38,7 +38,7 @@ cp apps/api/.env.example apps/api/.env   # then edit:
 pnpm typecheck && pnpm build && pnpm dev # web :5173, api :3001
 ```
 
-Optional preflights: `node scripts/preflight/azure-smoke.mjs`, `npx tsx scripts/preflight/terminal3-smoke.ts`.
+Optional preflights: `node scripts/preflight/azure-smoke.mjs`, `npx tsx scripts/preflight/terminal3-smoke.mts`.
 
 ## Workflow
 

@@ -3,7 +3,7 @@
 //
 // Usage (from repo root):
 //   pnpm add -D @terminal3/t3n-sdk tsx   # once, at the root (plain Node, no bundler)
-//   npx tsx scripts/preflight/terminal3-smoke.ts
+//   npx tsx scripts/preflight/terminal3-smoke.mts
 //
 // Reads T3N_API_KEY from apps/api/.env (or the shell environment).
 import { readFileSync } from 'node:fs';
@@ -40,8 +40,26 @@ const started = Date.now();
 const wasmComponent = await loadWasmComponent();
 const address = eth_get_address(T3N_API_KEY);
 
+// Preferred: pin the cluster's signed trust manifest (attestation verified).
+// Observed 2026-09-07: SDK 5.x requires `rtmr1_allowlist`, which the testnet manifest does not
+// yet include -> "Trust manifest ... is malformed". Set T3N_UNSAFE_TRUST=1 to fall back to
+// `{ unsafe_trust_server: true }` (skips TEE attestation pinning; identity/auth still real).
+let trustAnchor: Parameters<typeof T3nClient.prototype.constructor>[0]['trustAnchor'];
+let trustMode = 'pinned-manifest';
+try {
+  trustAnchor = await fetchTrustedManifest('testnet');
+} catch (err) {
+  if (process.env.T3N_UNSAFE_TRUST !== '1') {
+    console.error(String(err));
+    console.error('Re-run with T3N_UNSAFE_TRUST=1 to verify the key without attestation pinning.');
+    process.exit(1);
+  }
+  trustAnchor = { unsafe_trust_server: true };
+  trustMode = 'unsafe_trust_server (attestation NOT verified)';
+}
+
 const t3n = new T3nClient({
-  trustAnchor: await fetchTrustedManifest('testnet'),
+  trustAnchor,
   wasmComponent,
   handlers: { EthSign: metamask_sign(address, undefined, T3N_API_KEY) },
 });
@@ -50,6 +68,6 @@ await t3n.handshake();
 const did = await t3n.authenticate(createEthAuthInput(address));
 const tenantDid = did.value;
 
-console.log(`Connected as: ${tenantDid} (${Date.now() - started} ms)`);
+console.log(`Connected as: ${tenantDid} (${Date.now() - started} ms) trust=${trustMode}`);
 console.log(tenantDid?.startsWith('did:t3n:') ? 'TERMINAL3 PREFLIGHT: PASS' : 'TERMINAL3 PREFLIGHT: FAIL');
 process.exit(tenantDid?.startsWith('did:t3n:') ? 0 : 1);

@@ -15,7 +15,10 @@ Owner: human (with assistant help)   Date: 2026-09-07 (UTC)
 - Foundry project `myinvois-project`, resource `myinvois`, deployment **`chat-small`** (model gpt-5.4-mini, version 2026-03-17, Global Standard, status Succeeded).
 - Endpoint form for the OpenAI SDK: `https://myinvois.services.ai.azure.com/openai/v1/` (set in local `.env` and Vercel Preview/Production as `AZURE_OPENAI_BASE_URL`).
 - API key: **human must paste** into `apps/api/.env` (`AZURE_OPENAI_API_KEY`) and into Vercel (`vercel env add AZURE_OPENAI_API_KEY preview` / `production`).
-- Connectivity test: `node scripts/preflight/azure-smoke.mjs` → **not yet run** (waiting for the key). Record its PASS/FAIL output here.
+- Connectivity test **run 2026-09-07**: `node scripts/preflight/azure-smoke.mjs` →
+  `[1] text status=200 2447ms -> "Hi! How can I help with your order today?"`
+  `[2] toolcall status=200 2048ms -> get_order({"order_id":"ORD-1001"})`
+  **AZURE PREFLIGHT: PASS** (Responses API on `…services.ai.azure.com/openai/v1/` works with `api-key`; no fallback needed).
 - Note: Foundry's sample uses `DefaultAzureCredential`; we use the API key per PLAN.md §9.3. If `/openai/v1/responses` returns 404 on this project endpoint, fall back to the resource's `https://myinvois.openai.azure.com/openai/v1/` form and record which one worked.
 
 ## Terminal 3 (researched 2026-09-07 from docs.terminal3.io and github.com/Terminal-3)
@@ -28,17 +31,21 @@ Owner: human (with assistant help)   Date: 2026-09-07 (UTC)
   2. An agent acting for a user needs its **own** DID/key (separate claim) plus an `agent-auth-update` grant — see `docs/terminal3/agent-auth.md`.
   3. The SDK loads a **WASM component**; official docs report bundler (Vite/Next/Webpack) breakage. For Vercel Functions the SDK must stay **external / unbundled** (plain Node `import`), and `/tmp` is the only writable path. This is the Task 8 step 5 compatibility check.
 - Support: developer Telegram https://t.me/terminal3developer , devrel@terminal3.io
-- Connectivity test: `npx tsx scripts/preflight/terminal3-smoke.ts` → **not yet run** (waiting for the key).
+- Connectivity test **run 2026-09-07** with `@terminal3/t3n-sdk@5.10.0` (root devDependency, pinned):
+  - `npx tsx scripts/preflight/terminal3-smoke.mts` → **FAIL**: `Trust manifest at https://cn-api.sg.testnet.t3n.terminal3.io/api/trust-manifest is malformed.` Same on 5.9.0 / 5.8.0 / 5.5.0. Cause (from `dist/index.d.ts`): SDK 5.x `isSignedTrustManifest` requires `rtmr1_allowlist`; the testnet manifest (version 1787800421, signed 2026-08-27) only has `rtmr3_allowlist`. 4.2.0 has a different API (no `fetchTrustedManifest`).
+  - `T3N_UNSAFE_TRUST=1 npx tsx scripts/preflight/terminal3-smoke.mts` → **PASS**: `Connected as: did:t3n:d8cc263e050eb3697ddf0cdf03a995e388a5aaba (562 ms) trust=unsafe_trust_server (attestation NOT verified)`.
+  - Meaning: key + SIWE auth + tenant DID are real and working; **TEE attestation pinning is not verifiable against testnet today.** Task 8 must (a) ask in https://t.me/terminal3developer / devrel@terminal3.io whether a manifest with `rtmr1_allowlist` is coming or which SDK version matches testnet, and (b) if still blocked at the event, use `unsafe_trust_server` **only** with `evidence.verified=false` and an explicit "attestation not verified" label in IntegrationStatus. Never present this as a verified TEE result.
+- Tenant DID: `did:t3n:d8cc263e050eb3697ddf0cdf03a995e388a5aaba` (not secret; always read back from `authenticate()`, never hardcode).
 - Deployed `TERMINAL3_MODE=mock` until Task 8 passes.
 
 ## Vercel environment variables (names only; scope Preview + Production)
 Set by CLI: `DEMO_MODE`, `MODEL_PROVIDER`, `AZURE_OPENAI_BASE_URL`, `AZURE_OPENAI_DEPLOYMENT`, `TERMINAL3_MODE`, `SESSION_SECRET` (generated), `APP_ORIGIN` (= `https://parcel-guard-ai.vercel.app`; Task 9 adjusts for Preview URLs).
-Still missing: `AZURE_OPENAI_API_KEY` (human), `T3N_API_KEY` (human, when received), `DATABASE_URL` (Marketplace integration).
+Also set (2026-09-07): `AZURE_OPENAI_API_KEY`, `T3N_API_KEY`. Still missing: `DATABASE_URL` (Marketplace integration — create Neon from the Storage tab).
 
 ## Remaining human actions
-- [ ] Paste local Postgres password into `apps/api/.env`.
-- [ ] Paste Azure API key into `apps/api/.env`; run `node scripts/preflight/azure-smoke.mjs`; paste result summary here.
-- [ ] `vercel env add AZURE_OPENAI_API_KEY preview` and `... production` (paste key when prompted).
+- [x] Paste local Postgres password into `apps/api/.env`.
+- [x] Azure key in `.env`; smoke test PASS (above).
+- [x] `AZURE_OPENAI_API_KEY` set in Vercel Preview + Production.
 - [ ] Create Neon database from Vercel Storage tab; confirm `vercel env pull` shows `DATABASE_URL`.
-- [ ] Claim Terminal 3 key at https://www.terminal3.io/claim-page (work email; campaign code if given); paste into `apps/api/.env` as `T3N_API_KEY`; run `pnpm add -D -w @terminal3/t3n-sdk tsx && npx tsx scripts/preflight/terminal3-smoke.ts`; paste the `Connected as: did:t3n:…` line here; then `vercel env add T3N_API_KEY preview` / `production`.
+- [x] Terminal 3 key claimed, in `.env` and Vercel Preview + Production; smoke test PASS only with `T3N_UNSAFE_TRUST=1` (see above).
 - [ ] Confirm organizer permits pre-event building.
