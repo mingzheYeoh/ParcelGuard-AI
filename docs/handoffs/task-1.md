@@ -41,10 +41,26 @@ Agent/role: lead   Branch: task-1-scaffold   Date: 2026-09-07 (UTC)
 - **Workspace package names are short** (`web`, `api`, `contracts`) so the TASKS.md commands work literally: `pnpm --filter contracts typecheck`, `pnpm --filter api db:migrate`, `pnpm --filter web build`.
 - **Import specifier stays scoped**: `apps/web` and `apps/api` depend on `"@parcelguard/contracts": "workspace:contracts@*"` (pnpm workspace alias). Import from `@parcelguard/contracts`; the symlink `node_modules/@parcelguard/contracts → packages/contracts` exists in both apps.
 - `contracts` resolves through `dist/`, so run `pnpm --filter contracts build` after editing it (root `pnpm dev` does this automatically before starting the apps; `contracts` also has a `dev` watch script).
-- **Node version note:** `.nvmrc` is `20` as instructed, but this scaffold was actually installed and verified on Node **v22.19.0**. Both are allowed by TASKS.md §0.2. Task 9 must set the Vercel project Node version to match whichever is finally chosen — reconcile `.nvmrc` before that.
-- **pnpm 11 note:** the `pnpm` field in `package.json` is ignored; settings live in `pnpm-workspace.yaml`. `onlyBuiltDependencies: [esbuild, msw]` is set there, otherwise install fails with `ERR_PNPM_IGNORED_BUILDS`.
+- **Node version note:** `.nvmrc` is `22`, reconciled in Task 0 to match the Node **v22.19.0** this scaffold was installed and verified on, and `engines.node: "22.x"` in the root `package.json`. Vercel honors `engines` over the dashboard setting — the Preview build log confirms it overrides the project's `24.x`.
+- **pnpm 11 note:** the `pnpm` field in `package.json` is ignored; settings live in `pnpm-workspace.yaml`. Build-script approval uses pnpm 11's **`allowBuilds`** map (`esbuild: true`, `msw: true`) — **not** pnpm 10's `onlyBuiltDependencies` list, which still parses (`pnpm config get` even returns it) but approves nothing, so installs die with `ERR_PNPM_IGNORED_BUILDS`. Regenerate with `pnpm approve-builds --all`. See Post-merge corrections below.
 - **TypeScript 7.0.2** is installed (the new compiler). It removed `baseUrl`; `apps/web/tsconfig.json` uses `paths: { "@/*": ["./src/*"] }` without `baseUrl`. Do not re-add `baseUrl`.
 - **shadcn/ui 4.x convention:** generated components import `{ cn } from "cn"` (official `cn` package) and primitives from the unified `radix-ui` package. `@/lib/utils` re-exports `cn` for application code. Keep one primitive family (Design.md §1) — do not add `@radix-ui/react-*` singles.
 - API surface: `buildApp(options?)` in `apps/api/src/app.ts` returns a `FastifyInstance` with no listener; Task 5 registers real plugins/routes there and Task 6 wraps the same function in `api/index.ts`.
 - Env var names are listed in `apps/api/.env.example` and `apps/web/.env.example`; real values never enter the repo (`.gitignore` allows only `.env.example`).
 - Frontend defaults in code: `VITE_API_MODE` defaults to `mock`, `VITE_API_BASE_URL` defaults to `/api/v1`, so no `.env` file is required to run `pnpm dev`.
+
+## Post-merge corrections (2026-09-07, owner)
+
+Two defects surfaced only on Vercel, after this handoff was first written. Both are fixed on `main` (PR #1, merge `af8afb2`).
+
+1. **`ERR_PNPM_IGNORED_BUILDS` — install failed on every Preview.** `pnpm-workspace.yaml` used pnpm 10's `onlyBuiltDependencies` list. pnpm 11 replaced it with the `allowBuilds` map; the old key parses but approves nothing, so `esbuild` and `msw` postinstall scripts were skipped and `pnpm install` exited 1 before any build ran. Local installs passed because the scripts had already run into an existing `node_modules` — only a clean clone reproduces it. Fixed in `c3f8c82`.
+   - Reproduced: fresh clone + `CI=1 pnpm install --frozen-lockfile` → exit 1, identical message to the Vercel log.
+   - After fix: same command → exit 0; `pnpm typecheck` → exit 0; `pnpm build` → exit 0.
+2. **`No Output Directory named "public" found`.** Vercel infers install and build correctly from the root `package.json` but cannot guess the workspace output path. Added a minimal root `vercel.json` declaring `outputDirectory: apps/web/dist` only — `42ed7be`. The `/api/v1` rewrite and `functions.maxDuration` remain Task 6's to add.
+
+Deployment evidence after both fixes:
+
+- Preview `parcel-guard-7b0kduga8` → `● Ready`, `Build Completed in /vercel/output [11s]`.
+- Production `parcel-guard-8cacdzycw` → `● Ready`; `curl https://parcel-guard-ai.vercel.app` → `HTTP 200`, serves `<title>ParcelGuard AI — Support workspace</title>`.
+
+**Open item for Task 9 (deploy lane):** Preview deployments are behind Vercel Deployment Protection — a raw deployment URL returns `302` to `vercel.com/sso-api`. GitHub collaborators are not team members on this Hobby scope, so they cannot open the Preview links the Vercel bot posts on their PRs, which `docs/ONBOARDING.md` assumes they can. The production alias is unaffected (`200`). Owner must set *Project → Settings → Deployment Protection → Vercel Authentication* to Disabled or Production-only.
