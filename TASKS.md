@@ -172,7 +172,7 @@ ParcelGuard-AI/
 
 ## 3. Task list
 
-Legend — **Owner**: `lead`, `frontend`, `backend`, `integration`, `deploy` (agent roles; one person or agent may hold several). **Depends on**: tasks that must be *accepted* first.
+Legend — **Owner**: `lead`, `frontend`, `backend`, `integration`, `deploy` (agent roles; one person or agent may hold several). The `deploy` lane and Task 11 require Vercel project access and are run by the repository owner only; GitHub collaborators take the code lanes (see docs/ONBOARDING.md). **Depends on**: tasks that must be *accepted* first.
 
 ### Task 0 — Human preflight
 **Owner:** human · **Depends on:** — · **Blocks:** 4 (DATABASE_URL), 7 (Azure), 8 (Terminal 3), 9 (Vercel)

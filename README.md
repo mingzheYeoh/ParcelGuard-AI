@@ -9,6 +9,7 @@ Customers ask about synthetic orders in natural language; the model picks tools,
 | File | Purpose |
 |---|---|
 | [TASKS.md](TASKS.md) | **Start here.** Prerequisites (accounts, API keys, downloads), deployment architecture, Task 0–11 with owners, parallel lanes for multiple agents, handoff template |
+| [docs/ONBOARDING.md](docs/ONBOARDING.md) | **Collaborators start here.** Roles (owner runs Vercel tasks; collaborators write code), local setup, PR workflow |
 | [PLAN.md](PLAN.md) | Business scope, user journeys, data model, API contract v1, backend/model/Terminal 3 rules, acceptance criteria |
 | [Design.md](Design.md) | Design tokens, layout, components, interaction, frontend implementation order |
 | `design-reference/` | Visual prototype (`ParcelGuard Workspace.dc.html`, `support.js`) — reference only, not runtime |
