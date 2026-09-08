@@ -1,6 +1,7 @@
 import type { AddressSummary, Evidence, IntegrationMode, Order } from '@parcelguard/contracts';
 import { config } from '../config.js';
 import { createAzureModelAdapter } from './azureModelAdapter.js';
+import { createTerminal3Adapter } from './terminal3Adapter.js';
 
 /**
  * Adapter boundaries shipped by Task 5 so Tasks 7 (Azure) and 8 (Terminal 3)
@@ -172,4 +173,15 @@ export function createModelAdapter(): ModelAdapter {
   return config.modelProvider() === 'azure_openai'
     ? createAzureModelAdapter()
     : createMockModelAdapter();
+}
+
+/**
+ * Picks the Terminal 3 adapter from TERMINAL3_MODE. `live` opens a real
+ * session; anything else keeps the local stand-in, whose evidence says
+ * `source: "local"` so no one can mistake it for provider evidence.
+ */
+export function createTerminal3AdapterFromConfig(): Terminal3Adapter {
+  return config.terminal3Mode() === 'live'
+    ? createTerminal3Adapter()
+    : createLocalTerminal3Adapter();
 }

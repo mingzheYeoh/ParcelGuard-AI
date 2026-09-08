@@ -5,8 +5,8 @@ import { config } from './config.js';
 import { ApiError } from './http/errors.js';
 import { assertOrigin, registerRoutes } from './routes/index.js';
 import {
-  createLocalTerminal3Adapter,
   createModelAdapter,
+  createTerminal3AdapterFromConfig,
   type ModelAdapter,
   type Terminal3Adapter,
 } from './adapters/index.js';
@@ -46,7 +46,7 @@ export function buildApp(
     // Lazy: a missing DATABASE_URL must not stop GET /health from answering.
     getDb: () => deps?.db ?? getDb(),
     model: deps?.model ?? createModelAdapter(),
-    terminal3: deps?.terminal3 ?? createLocalTerminal3Adapter(),
+    terminal3: deps?.terminal3 ?? createTerminal3AdapterFromConfig(),
   });
 
   app.setNotFoundHandler((request, reply) => {
