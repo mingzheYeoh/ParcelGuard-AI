@@ -129,6 +129,11 @@ async function main(): Promise<void> {
     );
   }
 
+  // Which database this is about to rewrite. Without it the only signal is
+  // how long the run takes (~1.6 s local, ~14 s remote), and seeding the wrong
+  // one before a demo looks like success.
+  console.log(`Seeding ${new URL(databaseUrl).host}`);
+
   const client = postgres(databaseUrl, { max: 1 });
   await seedFixtures(drizzle(client, { schema }) as unknown as Database);
 
