@@ -35,14 +35,20 @@ pnpm dev                          # web :5173 (proxy /api → :3001), api :3001
 
 ## Status
 
-| Item | State |
-|---|---|
-| Frontend F0–F4 | not started |
-| PostgreSQL schema | not started |
-| Backend core | not started |
-| Vercel Preview | not deployed |
-| Model (Azure) | mock |
-| Terminal 3 | mock |
+Live: **https://parcel-guard-ai.vercel.app**
+
+| Item | State | Verified by |
+|---|---|---|
+| Frontend F0–F4 | done | browser pass on the deployment, `docs/handoffs/task-3.md`, `task-10.md` |
+| PostgreSQL schema | done | 11 tables, migrations + idempotent seed, `task-4.md` |
+| Backend core | done | 35 API tests against a real database, `task-5.md` |
+| Vercel Preview | deployed | `task-6.md`, `task-9.md` |
+| Model (Azure) | **live** | `GET /api/v1/health` → `"model":"live"`; five journeys on Production, `task-7.md` |
+| Terminal 3 | **live**, attestation **not verified** | `GET /api/v1/health` → `"terminal3":"live"`; real `did:t3n:…`, `verified:false`, `task-8.md` |
+
+What "Terminal 3: live" means here, precisely: a confirmed address change opens a real Terminal 3 session and stores the platform-assigned agent DID as evidence. It does **not** execute a protected TEE contract, and the TEE attestation is unverified because the testnet trust manifest is malformed today — so `evidence.verified` is `false`, the UI shows "Not verified", and `provider_reference` is `Not available` rather than an invented id. See `docs/handoffs/task-8.md`.
+
+`GET /api/v1/health` reports `unavailable` on a cold function instance until a real call succeeds in it; that is deliberate, not a fault. Do one chat turn before reading it.
 
 Update this table only from verified results (`GET /api/v1/health` and task handoffs in `docs/handoffs/`). Nothing above is evidence of completion.
 
