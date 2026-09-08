@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       '@terminal3/t3n-sdk':
-        specifier: 5.10.0
-        version: 5.10.0(typescript@7.0.2)
+        specifier: 5.2.0
+        version: 5.2.0(typescript@7.0.2)
       tsx:
         specifier: 4.23.13
         version: 4.23.13
@@ -27,8 +27,8 @@ importers:
         specifier: workspace:contracts@*
         version: link:../../packages/contracts
       '@terminal3/t3n-sdk':
-        specifier: 5.10.0
-        version: 5.10.0(typescript@7.0.2)
+        specifier: 5.2.0
+        version: 5.2.0(typescript@7.0.2)
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(postgres@3.4.9)
@@ -1616,8 +1616,8 @@ packages:
     peerDependencies:
       react: ^18 || ^19
 
-  '@terminal3/t3n-sdk@5.10.0':
-    resolution: {integrity: sha512-9RulrPSEGFlQgxzZx1L8222egYxvw5P8xFCA9ErQ9XV3LwuD2dL5F+bdx9ICiD+yzmCzsUKtA7mToNOSr687Zg==}
+  '@terminal3/t3n-sdk@5.2.0':
+    resolution: {integrity: sha512-B9U/ss4hh0nT+Oz9DcczNwnPsp+pRZPoyvXRgyReWZC/uqFBSLTBKtkVdKpd6ZrjvMV0iiM7L/VHsalSG4Fpzg==}
     engines: {node: '>=18.0.0'}
     hasBin: true
     peerDependencies:
@@ -3986,7 +3986,7 @@ snapshots:
       '@tanstack/query-core': 5.102.8
       react: 19.2.8
 
-  '@terminal3/t3n-sdk@5.10.0(typescript@7.0.2)':
+  '@terminal3/t3n-sdk@5.2.0(typescript@7.0.2)':
     dependencies:
       '@bytecodealliance/preview2-shim': 0.17.9
       '@noble/curves': 2.4.0

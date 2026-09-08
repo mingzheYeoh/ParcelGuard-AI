@@ -18,7 +18,7 @@ Customers ask about their orders in natural language. The model picks tools; the
 | Model — Azure OpenAI | **live** | `GET /api/v1/health` → `"model":"live"` after one turn |
 | Terminal 3 session + DID | **live** | evidence shows a real `did:t3n:…` |
 | Protected TEE contract | **executes** | `npx tsx scripts/t3n/deploy-contract.mts --skip-register` |
-| TEE attestation | **not verified** | the UI says "Not verified" — see below |
+| TEE attestation | **pinned** (RTMR3) | evidence shows `verified: true`; requires SDK 5.2.x — see below |
 | End-to-end behaviour | **14/14** | `node scripts/testcases.mjs https://parcel-guard-ai.vercel.app` |
 
 ### The permission boundary, concretely
@@ -29,7 +29,7 @@ The enclave has **no access to this database**. It cannot confirm the order exis
 
 ### What this project does not claim
 
-- **Not TEE-verified.** `fetchTrustedManifest('testnet')` fails today — SDK 5.x requires `rtmr1_allowlist`, testnet publishes only `rtmr3_allowlist` — so the anchor falls back to `unsafe_trust_server`, `evidence.verified` is `false`, and the UI renders "Not verified". A fixed manifest flips this to true with no code change.
+- **Attestation is pinned to RTMR3 only, and the SDK version is load-bearing.** Testnet publishes `rtmr3_allowlist` and nothing else. SDK 5.2.x accepts that and pins the signed manifest, so `evidence.verified` is `true`. From 5.3 the SDK also requires `rtmr1_allowlist`, rejects the live manifest as malformed, and the session can only open through `unsafe_trust_server` — **no attestation at all**. `@terminal3/t3n-sdk` is therefore held at `5.2.0`; do not bump it without re-running `fetchTrustedManifest`. The SDK's own types call `rtmr1_allowlist` "the real rootfs-integrity signal", so this is the weaker of the two measurements — less than the platform will eventually offer, and far more than skipping the check.
 - **The agent-auth grant enforces nothing here.** Terminal 3 gates grants at the egress boundary and this contract makes no outbound calls. Measured by calling as an *ungranted* agent before issuing the grant: allowed either way. What constrains the assistant is the two-tool allowlist, `policyService.ts`, and the enclave rule.
 - **The ledger says `caller_type: human`.** That field reads an agent-registry record written by `create-agent` on `tee:organisation/contracts`, which requires an organisation this tenant does not have.
 

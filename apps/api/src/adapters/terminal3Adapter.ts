@@ -23,17 +23,22 @@ import type { Terminal3Adapter } from './index.js';
  *   order state stay enforced in `policyService.ts`, which is the only party
  *   that can see the data; the enclave is a second, independent check on the
  *   rule, not a replacement for the first one.
- * - TEE attestation is **not** verified. `fetchTrustedManifest('testnet')`
- *   fails today ("Trust manifest ... is malformed"): SDK 5.x requires
- *   `rtmr1_allowlist`, and the testnet manifest only publishes
- *   `rtmr3_allowlist`. The only anchor that connects is
- *   `{ unsafe_trust_server: true }`, which skips attestation pinning.
- *   Therefore `evidence.verified` is **always false** here and
- *   `identityVerified()` is false. Never present this as a verified TEE
- *   result (PLAN.md §7.5).
+ * - TEE attestation **is** pinned, against the cluster's signed trust
+ *   manifest — but only because the SDK is held at **5.2.x**. Testnet
+ *   publishes `rtmr3_allowlist` and nothing else; from 5.3 the SDK also
+ *   requires `rtmr1_allowlist` and rejects the live manifest as malformed,
+ *   leaving `{ unsafe_trust_server: true }` — no attestation at all. Do not
+ *   bump this dependency without re-checking `fetchTrustedManifest`.
  *
- * In short: this proves an authenticated agent identity authorised the action.
- * It does not prove a TEE executed anything.
+ *   RTMR3 is the weaker of the two measurements; the SDK's own types call
+ *   `rtmr1_allowlist` "the real rootfs-integrity signal". So this is less
+ *   than the platform will eventually offer, and far more than skipping
+ *   attestation. `verified` is derived from the anchor actually used, so if
+ *   the pin ever fails it follows to false on its own (PLAN.md §7.5).
+ *
+ * In short: an authenticated agent identity authorised the action, a real
+ * enclave contract decided it, and the session was pinned to a signed
+ * manifest.
  */
 
 /** Session timeout. Past this the outcome is unknown, not failed. */
@@ -126,16 +131,18 @@ async function connectWithSdk(): Promise<Terminal3Session> {
   const wasmComponent = await loadWasmComponent();
   const address = eth_get_address(apiKey);
 
-  // Prefer the signed manifest; fall back only because testnet's is malformed
-  // today. The fallback is recorded, never hidden.
+  // Pin the cluster's signed trust manifest. `attestationVerified` is derived
+  // from which anchor was actually used, not set as a side effect of the
+  // catch — a fallback that forgets to record itself produces a green
+  // "Verified" with no attestation behind it, which is the one failure this
+  // panel exists to prevent.
   let trustAnchor: unknown;
-  let attestationVerified = true;
   try {
     trustAnchor = await fetchTrustedManifest('testnet');
   } catch {
     trustAnchor = { unsafe_trust_server: true };
-    attestationVerified = false;
   }
+  const attestationVerified = !isUnsafeAnchor(trustAnchor);
 
   const client = new T3nClient({
     trustAnchor,
@@ -293,6 +300,15 @@ export function createTerminal3Adapter(
       };
     },
   };
+}
+
+/**
+ * True when the anchor is the escape hatch rather than a signed manifest.
+ * Kept as an explicit check so `verified` can never drift away from the anchor
+ * the session was actually opened with.
+ */
+function isUnsafeAnchor(anchor: unknown): boolean {
+  return Boolean((anchor as { unsafe_trust_server?: boolean } | null)?.unsafe_trust_server);
 }
 
 class TimeoutError extends Error {}

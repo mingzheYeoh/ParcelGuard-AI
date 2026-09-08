@@ -15,7 +15,7 @@
     "test": "pnpm -r test"
   },
   "devDependencies": {
-    "@terminal3/t3n-sdk": "5.10.0",
+    "@terminal3/t3n-sdk": "5.2.0",
     "tsx": "4.23.13",
     "typescript": "7.0.2"
   }

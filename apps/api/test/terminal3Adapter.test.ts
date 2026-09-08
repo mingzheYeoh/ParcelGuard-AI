@@ -69,6 +69,25 @@ describe('evidence', () => {
     });
   });
 
+  it('reports verified when the session pinned a signed manifest', async () => {
+    // SDK 5.2.x accepts testnet's rtmr3-only manifest, so this is now the
+    // normal path rather than the unreachable one. It stays asserted because
+    // the value must keep tracking the anchor: bump the SDK past 5.2 and
+    // `fetchTrustedManifest` starts throwing, the adapter falls back to
+    // `unsafe_trust_server`, and this must go back to false on its own.
+    configured();
+    const adapter = createTerminal3Adapter(async () => sessionWith(ALLOWED, true));
+    await expect(adapter.authorize(CONFIRM)).resolves.toMatchObject({ verified: true });
+    expect(adapter.identityVerified()).toBe(true);
+  });
+
+  it('reports unverified when the session fell back to an unpinned anchor', async () => {
+    configured();
+    const adapter = createTerminal3Adapter(async () => sessionWith(ALLOWED, false));
+    await expect(adapter.authorize(CONFIRM)).resolves.toMatchObject({ verified: false });
+    expect(adapter.identityVerified()).toBe(false);
+  });
+
   it('only claims verified when the trust manifest actually pinned', async () => {
     configured();
     const adapter = createTerminal3Adapter(async () => sessionWith(ALLOWED, true));

@@ -19,7 +19,7 @@
   "dependencies": {
     "@fastify/cookie": "11.1.2",
     "@parcelguard/contracts": "workspace:contracts@*",
-    "@terminal3/t3n-sdk": "5.10.0",
+    "@terminal3/t3n-sdk": "5.2.0",
     "drizzle-orm": "0.45.2",
     "fastify": "5.12.3",
     "postgres": "3.4.9",
