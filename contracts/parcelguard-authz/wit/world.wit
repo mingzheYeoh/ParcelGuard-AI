@@ -1,0 +1,64 @@
+/// parcelguard-authz — the address-change permission decision, executed
+/// inside a Terminal 3 TEE instead of inside ParcelGuard's own server.
+///
+/// What this buys, stated precisely because the evidence it produces is what
+/// the demo asks people to trust:
+///
+///   The decision is made somewhere ParcelGuard cannot rewrite, and the node
+///   records the call — caller DID, function, outcome, and a SHA-256 of the
+///   entry — in the tenant activity ledger. That record is the
+///   `provider_reference` the audit trail cites.
+///
+/// What it does NOT buy, and the code must not imply otherwise:
+///
+///   The enclave has no access to ParcelGuard's database. It cannot verify
+///   that the order exists, that the customer owns it, or that the status it
+///   is told is the status in the database. It enforces the rule *on the
+///   facts it is handed*. Ownership stays enforced by the application
+///   (apps/api/src/services/policyService.ts), which is the only party that
+///   can see the data.
+///
+/// Imports:
+///   - tenant-context: tenant DID, contract id, calling DID, cluster time, seq
+///   - logging:        in-enclave decision trace
+///
+/// Deliberately imports no `http` and no `kv-store`: this contract reaches
+/// nothing outside itself, so there is no egress grant to reason about and
+/// no secret for it to leak.
+package z:parcelguard-authz@0.1.0;
+
+world parcelguard-authz {
+    import host:tenant/tenant-context@1.0.0;
+    import host:interfaces/logging@2.1.0;
+
+    export contracts;
+}
+
+interface contracts {
+    /// Standard 3-field envelope every node-dispatched contract receives.
+    /// `input`        — JSON request payload.
+    /// `user-profile` — always None for tenant contracts.
+    /// `context`      — node-minted DynamicContext JSON.
+    record generic-input {
+        input:        option<list<u8>>,
+        user-profile: option<list<u8>>,
+        context:      option<list<u8>>,
+    }
+
+    /// Decide whether a delivery-address change may be applied.
+    ///
+    /// Input (JSON):
+    ///   { order_id, order_status, from_address_ref, to_address_ref,
+    ///     proposal_id }
+    ///
+    /// Output (JSON):
+    ///   { decision, reason_code, order_id, proposal_id, tenant_did,
+    ///     contract_id, seq_no, decided_at, calling_did }
+    ///
+    /// `decision` is "allowed" or "denied". A denial is a normal, successful
+    /// execution — it returns Ok with decision:"denied", never Err — so the
+    /// refusal is recorded in the ledger as a decision the enclave made,
+    /// rather than as a fault that never got there. Err is reserved for a
+    /// malformed request, which is not a decision at all.
+    authorize-address-change: func(req: generic-input) -> result<list<u8>, string>;
+}

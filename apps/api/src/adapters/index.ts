@@ -143,7 +143,14 @@ export interface Terminal3Adapter {
    * record. Never fabricate a DID, signature, or verification result
    * (PLAN.md §7.5).
    */
-  authorize(input: { orderId: string; addressRef: string }): Promise<Evidence>;
+  authorize(input: {
+    orderId: string;
+    addressRef: string;
+    /** Current order status — the fact the enclave rules on. */
+    orderStatus: string;
+    fromAddressRef: string;
+    proposalId: string;
+  }): Promise<Evidence>;
 }
 
 /**
