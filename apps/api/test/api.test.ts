@@ -13,6 +13,7 @@ import { closeDb, getDb } from '../src/db/index.js';
 import { conversations, orders, proposals } from '../src/db/schema.js';
 import { recordAction } from '../src/services/auditService.js';
 import { seedFixtures } from '../src/scripts/seed.js';
+import { apiError } from '../src/http/errors.js';
 
 /**
  * Integration tests for TASKS.md Task 5 "Done when". They run against the real
@@ -193,6 +194,46 @@ describe('business rules', () => {
     });
     expect(response.statusCode).toBe(422);
     expect(response.json().error.code).toBe('INVALID_INPUT');
+  });
+
+  it('lets a turn that failed be retried with the same client_message_id', async () => {
+    // Design.md §9 tells the UI to reuse client_message_id when retrying after
+    // a model timeout. The claim row must therefore not outlive a failed turn.
+    const cookie = await startSession();
+    const conversationId = await openConversation(cookie);
+    const clientMessageId = randomUUID();
+    const payload = { client_message_id: clientMessageId, content: 'Show me ORD-1002' };
+
+    const failing = buildApp({
+      logger: false,
+      deps: {
+        db,
+        model: {
+          mode: () => 'mock' as const,
+          provider: () => null,
+          deployment: () => null,
+          decide: () => Promise.reject(apiError('MODEL_TIMEOUT', 'took too long')),
+        },
+      },
+    });
+    await failing.ready();
+    const timedOut = await failing.inject({
+      method: 'POST',
+      url: `/api/v1/conversations/${conversationId}/messages`,
+      headers: { cookie },
+      payload,
+    });
+    expect(timedOut.statusCode).toBe(504);
+    await failing.close();
+
+    const retry = await app.inject({
+      method: 'POST',
+      url: `/api/v1/conversations/${conversationId}/messages`,
+      headers: { cookie },
+      payload,
+    });
+    expect(retry.statusCode, 'a retry after a failed turn must not be stuck at 409').toBe(200);
+    expect(retry.json().data.cards[0].type).toBe('order_summary');
   });
 
   it('replays the stored turn for a repeated client_message_id', async () => {

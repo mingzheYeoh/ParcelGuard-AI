@@ -72,6 +72,8 @@ export async function postMessage(
       );
     }
     if (previous.turn) return previous.turn as ChatTurn;
+    // A claim row with no stored turn can now only mean a turn still running
+    // in another request; a failed one deletes its own row.
     throw apiError('REQUEST_IN_PROGRESS', 'This message is still being processed');
   }
 
@@ -115,6 +117,14 @@ export async function postMessage(
 
     await db.update(messages).set({ turn }).where(eq(messages.id, userMessageId));
     return turn;
+  } catch (cause) {
+    // The row exists only to hold the client_message_id claim while the turn
+    // runs. If the turn failed there is no stored turn to replay, so leaving
+    // the row behind would make every retry with the same id answer 409
+    // forever — while Design.md §9 tells the UI to reuse that id after a model
+    // timeout. Release the claim so the retry is a fresh attempt.
+    await db.delete(messages).where(eq(messages.id, userMessageId));
+    throw cause;
   } finally {
     // Release the flag even when the turn failed, otherwise the conversation
     // would be permanently stuck at 409 (no background work can clear it).
