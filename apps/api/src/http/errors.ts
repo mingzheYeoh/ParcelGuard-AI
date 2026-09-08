@@ -42,18 +42,22 @@ export class ApiError extends Error {
   readonly code: ErrorCode;
   readonly status: number;
   readonly retryable: boolean;
+  /** Seconds, echoed as the Retry-After header (PLAN.md §7.6 for 429). */
+  readonly retryAfterSeconds: number | undefined;
 
-  constructor(code: ErrorCode, message: string) {
+  constructor(code: ErrorCode, message: string, retryAfterSeconds?: number) {
     super(message);
     this.name = 'ApiError';
     this.code = code;
     this.status = STATUS_BY_CODE[code];
     this.retryable = RETRYABLE.has(code);
+    this.retryAfterSeconds = retryAfterSeconds;
   }
 }
 
 /** Shorthand: `throw apiError('ORDER_UNAVAILABLE', 'Order not available')`. */
-export const apiError = (code: ErrorCode, message: string) => new ApiError(code, message);
+export const apiError = (code: ErrorCode, message: string, retryAfterSeconds?: number) =>
+  new ApiError(code, message, retryAfterSeconds);
 
 /**
  * 404 for anything the session does not own — PLAN.md §7.6 "Do not disclose
