@@ -92,3 +92,42 @@ README now reads `live` for both, with the Terminal 3 caveat stated inline rathe
 3. **Rollback is one variable.** `TERMINAL3_MODE=mock` or `MODEL_PROVIDER=mock` in the Vercel project, then redeploy: the app keeps working and reports the mock mode honestly instead of failing.
 4. **Say what the evidence means.** "An authenticated agent identity authorised this change; the TEE attestation behind that identity could not be verified today." The UI already shows "Not verified" — do not let a slide say otherwise.
 5. Deterministic failure scenarios still exist in the frontend's mock mode only (`simulate timeout`, `simulate outage`, …); they do nothing against the live API.
+
+## Post-release readiness re-check (same day)
+
+Production was re-verified after promotion, and one defect was found and fixed.
+
+**`500` for a malformed request body.** `POST /demo/session` sent with
+`content-type: application/json` and an empty body answered
+`500 INTERNAL_ERROR`. Fastify had already classified it `400`
+(`FST_ERR_CTP_EMPTY_JSON_BODY`); the error handler ignored that and used the
+unhandled-fault branch, so the server took the blame for the caller's request
+and logged it at `error` level — the level a real fault needs to stand out at.
+Now mapped to `422 INVALID_INPUT` and logged at `warn` (PR #15). No contract
+change: `INVALID_INPUT` is already the code for an unusable request.
+
+The deployed UI never hit it — `apps/web/src/lib/api.ts` always sends
+`JSON.stringify(body)`, defaulting to `{}`. Only a hand-written client
+reaches that path, which is why every browser pass was green.
+
+### Journeys re-run on Production after the promotion
+
+| Step | Latency | Result |
+|---|---|---|
+| A lookup ORD-1001 | 2.6 s | `order_summary` |
+| B change ORD-1002 | 5.5 s | `order_summary` + `address_change_proposal` |
+| C foreign ORD-2001 | 5.0 s | `action_result` denial |
+| D shipped ORD-1001 | 4.1 s | `action_result` denial |
+| E bypass attempt | 0.9 s | no card, refusal recorded |
+| confirm | 4.4 s | `succeeded`, ORD-1002 `Home v1` → `Office v2` |
+
+`terminal3: live` with a real session on the same instance.
+
+**Production was re-seeded afterwards** — those runs left ORD-1002 on Office,
+which is the state that breaks journey B. Verified back at `Home v1`. The seed
+took **13.7 s** against the remote database.
+
+One trap worth naming: running `pnpm exec tsx src/scripts/seed.ts` without an
+explicit `DATABASE_URL` silently seeds the **local** database from
+`apps/api/.env` and finishes in ~1.6 s. The remote seed takes ~14 s. If the
+reset returns in under two seconds, it did not touch Production.
