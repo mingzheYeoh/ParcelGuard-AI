@@ -148,7 +148,11 @@ async function runAgentLoop(
 
     if (decision.kind === 'message') {
       assistantText = decision.content;
-      if (decision.refusal) {
+      // Only a refusal *without* a tool call is an agent_refusal (PLAN.md §3
+      // journey E). After a tool ran, the denial belongs to the backend and is
+      // already recorded as policy_denied — recording both would credit the
+      // model with a decision the policy engine made.
+      if (decision.refusal && toolCalls === 0) {
         // PLAN.md §3 journey E: a decline is an auditable event. A clarifying
         // question is not, so adapters only set this for an actual refusal —
         // and nothing here invents an action id for the card (Design.md §8.3).
