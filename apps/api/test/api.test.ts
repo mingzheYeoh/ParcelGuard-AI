@@ -5,6 +5,7 @@ import {
   CUSTOMER_OTHER_ID,
   errorEnvelopeSchema,
   orderSchema,
+  ownedOrderIds,
   proposalResultSchema,
 } from '@parcelguard/contracts';
 import type { FastifyInstance } from 'fastify';
@@ -157,7 +158,8 @@ describe('order authorization', () => {
     const response = await app.inject({ method: 'GET', url: '/api/v1/orders', headers: { cookie } });
     expect(response.statusCode).toBe(200);
     const ids = response.json().data.items.map((order: { id: string }) => order.id);
-    expect(ids).toEqual(['ORD-1001', 'ORD-1002']);
+    // Derived from the fixtures, so adding one cannot silently pass here.
+    expect(ids).toEqual(ownedOrderIds);
   });
 
   it('serves an owned order and hides a foreign one behind the same 404', async () => {
