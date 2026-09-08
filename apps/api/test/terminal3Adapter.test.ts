@@ -22,6 +22,7 @@ const ALLOWED: EnclaveDecision = {
   contract_id: 928,
   seq_no: 202892,
   decided_at: 1788844871,
+  calling_did: DID.replace('did:t3n:', ''),
 };
 
 /** A session whose enclave call returns `decision`. */
@@ -29,7 +30,7 @@ const sessionWith = (
   decision: EnclaveDecision | (() => Promise<EnclaveDecision>),
   attestationVerified = false,
 ): Terminal3Session => ({
-  tenantDid: DID,
+  sessionDid: DID,
   attestationVerified,
   execute: typeof decision === 'function' ? decision : async () => decision,
 });
@@ -151,6 +152,7 @@ describe('failure mapping', () => {
         contract_id: 928,
         seq_no: 202922,
         decided_at: 1788844896,
+        calling_did: DID.replace('did:t3n:', ''),
       }),
     );
 
@@ -165,6 +167,17 @@ describe('failure mapping', () => {
     configured();
     const adapter = createTerminal3Adapter(async () =>
       sessionWith(async () => ({ unexpected: true }) as unknown as EnclaveDecision),
+    );
+    const error = (await adapter.authorize(CONFIRM).catch((caught: unknown) => caught)) as ApiError;
+    expect(error.code).toBe('TERMINAL3_UNAVAILABLE');
+  });
+
+  it('refuses when the enclave saw a different caller than we authenticated as', async () => {
+    // Evidence that names the wrong actor is worse than no evidence: this is
+    // the one field the audit trail asks people to trust.
+    configured();
+    const adapter = createTerminal3Adapter(async () =>
+      sessionWith({ ...ALLOWED, calling_did: 'deadbeef00000000000000000000000000000000' }),
     );
     const error = (await adapter.authorize(CONFIRM).catch((caught: unknown) => caught)) as ApiError;
     expect(error.code).toBe('TERMINAL3_UNAVAILABLE');

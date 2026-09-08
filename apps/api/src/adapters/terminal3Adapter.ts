@@ -1,4 +1,5 @@
 import type { Evidence, IntegrationMode } from '@parcelguard/contracts';
+import { config } from '../config.js';
 import { apiError } from '../http/errors.js';
 import type { Terminal3Adapter } from './index.js';
 
@@ -54,6 +55,8 @@ export interface EnclaveDecision {
   readonly contract_id: number;
   readonly seq_no: number;
   readonly decided_at: number;
+  /** Hex of the DID the enclave saw calling it. Its own view, not our claim. */
+  readonly calling_did: string | null;
 }
 
 /**
@@ -64,7 +67,12 @@ export interface EnclaveDecision {
 export type EnclaveExecute = (request: EnclaveRequest) => Promise<unknown>;
 
 export interface Terminal3Session {
-  readonly tenantDid: string;
+  /**
+   * DID this session authenticated as. The tenant's when running on
+   * T3N_API_KEY, the assistant's when T3N_AGENT_KEY is set — so it is named
+   * for what it is rather than for one of the two things it can be.
+   */
+  readonly sessionDid: string;
   /** True only if the signed trust manifest pinned successfully. */
   readonly attestationVerified: boolean;
   /** Runs the registered contract. Injected in tests so they need no WASM. */
@@ -87,21 +95,31 @@ const CONTRACT_FUNCTION = 'authorize-address-change';
 export type Terminal3Connect = () => Promise<Terminal3Session>;
 
 async function connectWithSdk(): Promise<Terminal3Session> {
-  const apiKey = process.env.T3N_API_KEY;
+  // Run as the assistant when it has its own key, otherwise as the tenant.
+  const agentKey = config.terminal3AgentKey();
+  const apiKey = agentKey ?? process.env.T3N_API_KEY;
   if (!apiKey) throw new Error('T3N_API_KEY is not set');
+  if (agentKey && agentKey === process.env.T3N_API_KEY) {
+    throw new Error('T3N_AGENT_KEY must differ from T3N_API_KEY — they are one identity');
+  }
+  // The contract is owned by the tenant, so its canonical name needs the
+  // owner's DID. Running as the agent means the session can no longer supply it.
+  const ownerDid = agentKey ? config.terminal3TenantDid() : undefined;
+  if (agentKey && !ownerDid) {
+    throw new Error('T3N_TENANT_DID is required when T3N_AGENT_KEY is set');
+  }
 
   // Imported lazily: the SDK loads a WASM component at import time, and a
   // deployment running in mock mode must not pay that cost or risk it.
   const {
     T3nClient,
-    TenantClient,
     setEnvironment,
     loadWasmComponent,
     eth_get_address,
     metamask_sign,
     createEthAuthInput,
     fetchTrustedManifest,
-    getNodeUrl,
+    canonicalTenantName,
   } = await import('@terminal3/t3n-sdk');
 
   setEnvironment('testnet');
@@ -127,28 +145,22 @@ async function connectWithSdk(): Promise<Terminal3Session> {
 
   await client.handshake();
   const did = await client.authenticate(createEthAuthInput(address));
-  const tenantDid = did.value;
-  if (!tenantDid?.startsWith('did:t3n:')) {
-    throw new Error('Terminal 3 returned no tenant DID');
+  const sessionDid = did.value;
+  if (!sessionDid?.startsWith('did:t3n:')) {
+    throw new Error('Terminal 3 returned no DID');
   }
 
-  const baseUrl = getNodeUrl();
-  const tenant = new TenantClient({
-    environment: 'testnet',
-    t3n: client as never,
-    tenantDid,
-    baseUrl,
-    endpoint: baseUrl,
-  });
+  const contractId = canonicalTenantName(ownerDid ?? sessionDid, CONTRACT_TAIL);
 
   const execute: EnclaveExecute = (request) =>
-    tenant.contracts.execute(CONTRACT_TAIL, {
-      version: CONTRACT_VERSION,
-      functionName: CONTRACT_FUNCTION,
+    client.executeAndDecode({
+      contract_id: contractId,
+      contract_version: CONTRACT_VERSION,
+      function_name: CONTRACT_FUNCTION,
       input: request,
     });
 
-  return { tenantDid, attestationVerified, execute };
+  return { sessionDid, attestationVerified, execute };
 }
 
 /**
@@ -163,7 +175,8 @@ function asDecision(raw: unknown): EnclaveDecision {
     (value.decision !== 'allowed' && value.decision !== 'denied') ||
     typeof value.reason_code !== 'string' ||
     typeof value.contract_id !== 'number' ||
-    typeof value.seq_no !== 'number'
+    typeof value.seq_no !== 'number' ||
+    (value.calling_did !== null && typeof value.calling_did !== 'string')
   ) {
     throw new Error('Terminal 3 returned an unreadable contract response');
   }
@@ -173,7 +186,7 @@ function asDecision(raw: unknown): EnclaveDecision {
 export function createTerminal3Adapter(
   connect: Terminal3Connect = connectWithSdk,
 ): Terminal3Adapter {
-  const configured = Boolean(process.env.T3N_API_KEY);
+  const configured = Boolean(process.env.T3N_API_KEY ?? config.terminal3AgentKey());
   /** Cached per process: a warm instance reuses one authenticated session. */
   let session: Promise<Terminal3Session> | null = null;
   let live: Terminal3Session | null = null;
@@ -200,7 +213,7 @@ export function createTerminal3Adapter(
   return {
     // "live" only once a real session exists (TASKS.md §2 rule 5).
     mode: (): IntegrationMode => (live ? 'live' : 'unavailable'),
-    agentDid: () => live?.tenantDid ?? null,
+    agentDid: () => live?.sessionDid ?? null,
     // False until the signed trust manifest actually pins.
     identityVerified: () => live?.attestationVerified ?? false,
 
@@ -237,6 +250,18 @@ export function createTerminal3Adapter(
         throw apiError('TERMINAL3_UNAVAILABLE', 'The authorization service is unavailable.');
       }
 
+      // The enclave reports the DID it saw calling it. If that disagrees with
+      // the identity this process believes it authenticated as, the evidence
+      // would name the wrong actor — refuse rather than record a claim we
+      // cannot stand behind.
+      const expected = session.sessionDid.replace('did:t3n:', '');
+      if (decision.calling_did && decision.calling_did !== expected) {
+        throw apiError(
+          'TERMINAL3_UNAVAILABLE',
+          'The authorization service reported a different caller than expected.',
+        );
+      }
+
       if (decision.decision !== 'allowed') {
         // The enclave refused a change the application had already approved,
         // so the two disagree. Fail the confirmation rather than proceed —
@@ -249,8 +274,9 @@ export function createTerminal3Adapter(
 
       return {
         source: 'terminal3',
-        // Real, read back from authenticate() — never constructed.
-        agent_did: session.tenantDid,
+        // Real, read back from authenticate() and cross-checked against the
+        // DID the enclave itself reported seeing.
+        agent_did: session.sessionDid,
         // Composed from two values the Terminal 3 node assigned to this
         // execution and returned in the response: the contract's registration
         // id, and the store sequence number at the moment of the decision

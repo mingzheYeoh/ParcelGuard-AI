@@ -50,6 +50,22 @@ export const config = {
   modelProvider: () => process.env.MODEL_PROVIDER ?? 'mock',
   terminal3Mode: (): IntegrationMode =>
     process.env.TERMINAL3_MODE === 'live' ? 'live' : 'mock',
+  /**
+   * When set, the enclave contract is called with this identity instead of the
+   * tenant's. That is the honest arrangement for this product: the thing
+   * asking for authorization is an assistant, not the operator who owns the
+   * contract, and `evidence.agent_did` should say so.
+   *
+   * It must be a *different* key from T3N_API_KEY — an agent DID's credits are
+   * separate and start at zero, and one key used twice is one identity.
+   */
+  terminal3AgentKey: (): string | undefined => process.env.T3N_AGENT_KEY || undefined,
+  /**
+   * DID that owns the contract. Only needed alongside T3N_AGENT_KEY: the
+   * canonical name is `z:<owner tid>:<tail>`, and when the session belongs to
+   * the agent the owner can no longer be read from it.
+   */
+  terminal3TenantDid: (): string | undefined => process.env.T3N_TENANT_DID || undefined,
 };
 
 export const SESSION_COOKIE = 'pg_session';
