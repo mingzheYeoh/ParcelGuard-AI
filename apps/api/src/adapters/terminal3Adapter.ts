@@ -11,11 +11,17 @@ import type { Terminal3Adapter } from './index.js';
  * - It performs a **real** Terminal 3 session: `handshake()` then
  *   `authenticate()`, which returns a platform-assigned tenant DID. The key,
  *   the SIWE signature and the DID are genuine.
- * - It does **not** execute a protected TEE contract. That needs a registered
- *   WASM contract (`tenant.contracts.register` / `execute`), which means a
- *   Rust `wasm32-wasip2` build and agent credits — out of scope per PLAN.md
- *   §10 and TASKS.md Task 8 item 1. So there is no provider operation id, and
- *   `provider_reference` stays null rather than being invented.
+ * - It executes a **real protected contract**: `z:<tid>:parcelguard-authz`,
+ *   the WASM component in `contracts/parcelguard-authz`, which makes the
+ *   address-change decision inside the enclave. `provider_reference` is built
+ *   from the `contract_id` and `seq_no` the node assigned to that execution —
+ *   both read out of the response, neither invented — and locates the call in
+ *   the tenant activity ledger.
+ * - The enclave has **no access to this application's database**. It decides
+ *   on the facts it is handed and cannot confirm they are true. Ownership and
+ *   order state stay enforced in `policyService.ts`, which is the only party
+ *   that can see the data; the enclave is a second, independent check on the
+ *   rule, not a replacement for the first one.
  * - TEE attestation is **not** verified. `fetchTrustedManifest('testnet')`
  *   fails today ("Trust manifest ... is malformed"): SDK 5.x requires
  *   `rtmr1_allowlist`, and the testnet manifest only publishes
@@ -32,11 +38,47 @@ import type { Terminal3Adapter } from './index.js';
 /** Session timeout. Past this the outcome is unknown, not failed. */
 const TIMEOUT_MS = 15_000;
 
+/** The facts the enclave rules on. It sees nothing else. */
+export interface EnclaveRequest {
+  readonly order_id: string;
+  readonly order_status: string;
+  readonly from_address_ref: string;
+  readonly to_address_ref: string;
+  readonly proposal_id: string;
+}
+
+/** Exactly the JSON `authorize-address-change` returns. */
+export interface EnclaveDecision {
+  readonly decision: 'allowed' | 'denied';
+  readonly reason_code: string;
+  readonly contract_id: number;
+  readonly seq_no: number;
+  readonly decided_at: number;
+}
+
+/**
+ * Returns whatever the node sent. It is validated in `authorize`, not here:
+ * the response crosses a trust boundary, and a guard that only covers the
+ * production executor is not a guard.
+ */
+export type EnclaveExecute = (request: EnclaveRequest) => Promise<unknown>;
+
 export interface Terminal3Session {
   readonly tenantDid: string;
   /** True only if the signed trust manifest pinned successfully. */
   readonly attestationVerified: boolean;
+  /** Runs the registered contract. Injected in tests so they need no WASM. */
+  readonly execute: EnclaveExecute;
 }
+
+/**
+ * Must match the registered `tail@version`. Bumping the contract means
+ * registering the new version *and* changing this — deliberately coupled, so
+ * the app can never execute a version nobody deployed.
+ */
+const CONTRACT_TAIL = 'parcelguard-authz';
+const CONTRACT_VERSION = '0.1.0';
+const CONTRACT_FUNCTION = 'authorize-address-change';
 
 /**
  * Opens a real session. Injectable so tests can exercise the adapter's
@@ -52,12 +94,14 @@ async function connectWithSdk(): Promise<Terminal3Session> {
   // deployment running in mock mode must not pay that cost or risk it.
   const {
     T3nClient,
+    TenantClient,
     setEnvironment,
     loadWasmComponent,
     eth_get_address,
     metamask_sign,
     createEthAuthInput,
     fetchTrustedManifest,
+    getNodeUrl,
   } = await import('@terminal3/t3n-sdk');
 
   setEnvironment('testnet');
@@ -87,7 +131,43 @@ async function connectWithSdk(): Promise<Terminal3Session> {
   if (!tenantDid?.startsWith('did:t3n:')) {
     throw new Error('Terminal 3 returned no tenant DID');
   }
-  return { tenantDid, attestationVerified };
+
+  const baseUrl = getNodeUrl();
+  const tenant = new TenantClient({
+    environment: 'testnet',
+    t3n: client as never,
+    tenantDid,
+    baseUrl,
+    endpoint: baseUrl,
+  });
+
+  const execute: EnclaveExecute = (request) =>
+    tenant.contracts.execute(CONTRACT_TAIL, {
+      version: CONTRACT_VERSION,
+      functionName: CONTRACT_FUNCTION,
+      input: request,
+    });
+
+  return { tenantDid, attestationVerified, execute };
+}
+
+/**
+ * The SDK types `execute` as `unknown`, so the shape is checked here rather
+ * than cast. A response this code cannot read is a failure, never a silent
+ * `allowed`.
+ */
+function asDecision(raw: unknown): EnclaveDecision {
+  const value = raw as Partial<EnclaveDecision> | null;
+  if (
+    !value ||
+    (value.decision !== 'allowed' && value.decision !== 'denied') ||
+    typeof value.reason_code !== 'string' ||
+    typeof value.contract_id !== 'number' ||
+    typeof value.seq_no !== 'number'
+  ) {
+    throw new Error('Terminal 3 returned an unreadable contract response');
+  }
+  return value as EnclaveDecision;
 }
 
 export function createTerminal3Adapter(
@@ -124,14 +204,27 @@ export function createTerminal3Adapter(
     // False until the signed trust manifest actually pins.
     identityVerified: () => live?.attestationVerified ?? false,
 
-    async authorize(): Promise<Evidence> {
+    async authorize(input): Promise<Evidence> {
       if (!configured) {
         throw apiError('TERMINAL3_UNAVAILABLE', 'The authorization service is not configured.');
       }
 
-      let result: Terminal3Session;
+      let session: Terminal3Session;
+      let decision: EnclaveDecision;
       try {
-        result = await withTimeout(open(), TIMEOUT_MS);
+        session = await withTimeout(open(), TIMEOUT_MS);
+        decision = asDecision(
+          await withTimeout(
+            session.execute({
+              order_id: input.orderId,
+              order_status: input.orderStatus,
+              from_address_ref: input.fromAddressRef,
+              to_address_ref: input.addressRef,
+              proposal_id: input.proposalId,
+            }),
+            TIMEOUT_MS,
+          ),
+        );
       } catch (cause) {
         // A timeout means the call may or may not have been seen by the
         // provider. PLAN.md §8.4: that is outcome_unknown, never a retry.
@@ -144,16 +237,33 @@ export function createTerminal3Adapter(
         throw apiError('TERMINAL3_UNAVAILABLE', 'The authorization service is unavailable.');
       }
 
+      if (decision.decision !== 'allowed') {
+        // The enclave refused a change the application had already approved,
+        // so the two disagree. Fail the confirmation rather than proceed —
+        // a second opinion is only worth having if it can stop the first.
+        throw apiError(
+          decision.reason_code === 'ORDER_NOT_EDITABLE' ? 'ORDER_NOT_EDITABLE' : 'INVALID_INPUT',
+          'The authorization service refused this change.',
+        );
+      }
+
       return {
         source: 'terminal3',
         // Real, read back from authenticate() — never constructed.
-        agent_did: result.tenantDid,
-        // Null on purpose. Terminal 3 issued no operation id because no
-        // contract was executed, and PLAN.md §7.5 forbids inventing one. A
-        // locally-built string here would read as provider evidence and be a
-        // lie in exactly the place this project asks people to trust it.
-        provider_reference: null,
-        verified: result.attestationVerified,
+        agent_did: session.tenantDid,
+        // Composed from two values the Terminal 3 node assigned to this
+        // execution and returned in the response: the contract's registration
+        // id, and the store sequence number at the moment of the decision
+        // (the host documents `seq-no` as the audit/replay correlation key).
+        // Nothing here is locally invented.
+        //
+        // It is *not* the id of the node's activity-ledger row for this call:
+        // that row is written after the decision returns and carries its own,
+        // slightly later seq_no plus a SHA-256 of the entry. Observed on
+        // testnet: decision 202946 -> ledger row 202949. Read the ledger with
+        // `npx tsx scripts/t3n/activity.mts` to see the node's own record.
+        provider_reference: `t3n:${decision.contract_id}:${decision.seq_no}`,
+        verified: session.attestationVerified,
       };
     },
   };

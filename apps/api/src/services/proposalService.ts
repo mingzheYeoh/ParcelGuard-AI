@@ -5,7 +5,7 @@ import type { Database } from '../db/index.js';
 import { conversations, idempotencyKeys, proposals } from '../db/schema.js';
 import { PROPOSAL_TTL_MS } from '../config.js';
 import { ApiError, apiError, notFound } from '../http/errors.js';
-import { requireUnexpired } from './policyService.js';
+import { requireOwnedOrder, requireUnexpired } from './policyService.js';
 import { applyAddressChange } from '../repositories/orderRepository.js';
 import { recordAction } from './auditService.js';
 import type { Terminal3Adapter } from '../adapters/index.js';
@@ -179,9 +179,16 @@ export async function confirmProposal(
   // clears it, because a Vercel Function does no background work.
   let evidence: Evidence;
   try {
+    // Read the order fresh: the enclave rules on the state at confirm time,
+    // not the state when the proposal was written. Between the two the order
+    // can have shipped.
+    const current = await requireOwnedOrder(db, proposal.orderId, session.customerId);
     evidence = await terminal3.authorize({
       orderId: proposal.orderId,
       addressRef: proposal.targetAddressRef,
+      orderStatus: current.status,
+      fromAddressRef: current.address_ref,
+      proposalId,
     });
   } catch (cause) {
     // PLAN.md §8.4: after dispatch an uncertain outcome is outcome_unknown,
