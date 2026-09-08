@@ -168,6 +168,9 @@ describe('order authorization', () => {
     expect(card.type).toBe('action_result');
     expect(card.outcome).toBe('denied');
     expect(card.reason_code).toBe('ORDER_UNAVAILABLE');
+    // Design.md §8.3 copy, and not a repeat of the card's own title.
+    expect(card.description).toBe("This order isn't available in your account.");
+    expect(card.description).not.toBe(card.title);
   });
 });
 
