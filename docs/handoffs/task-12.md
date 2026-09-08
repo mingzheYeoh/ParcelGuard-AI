@@ -96,36 +96,105 @@ seq 202925  human  parcelguard-authz::authorize-address-change  success  9db43c8
    is precisely the case a second check exists for. `confirmProposal` now
    re-reads the order.
 
-## Open question, not yet answered — agent grants may not be enforced here
+## The agent identity — three results, one of them negative
 
-Terminal 3's Agent Auth docs say enforcement happens at the egress boundary:
+A second key was claimed and the assistant now has its own DID,
+`did:t3n:82ae29ec…`, distinct from the tenant's `did:t3n:d8cc263e…`.
+
+### 1. The grant is real, and it enforces nothing here — measured, not assumed
+
+Terminal 3's Agent Auth docs place enforcement at the egress boundary:
 
 > An agent with no matching grant can still call the contract — the call just
 > fails at the point it tries to reach the network, with `host/http.egress_denied`.
 
-`parcelguard-authz` makes no outbound calls. So an ungranted agent may well be
-able to call it, which would make the grant **recorded but not enforced** for
-this contract. That would not be a bug in the grant; it would be a fact about
-where the boundary sits, and the demo must not claim otherwise.
+`parcelguard-authz` makes no outbound calls, so there is no such boundary to
+fail at. `scripts/t3n/agent-flow.mts` tests this the only way that proves
+anything — it calls the contract as an **ungranted** agent *before* issuing the
+grant:
 
-`scripts/t3n/agent-flow.mts` answers it by experiment rather than assumption:
-it calls the contract as an ungranted agent **first**, then issues the grant,
-then calls again, then prints the ledger. It needs `AGENT_KEY` — a second key
-from the claim page, since an agent DID's credits are separate and start at
-zero. The script refuses to run if `AGENT_KEY` equals `T3N_API_KEY`, because
-one identity used twice demonstrates nothing.
+```
+1. agent calls the contract with NO grant   -> ALLOWED
+2. tenant issues agent-auth-update grant    -> tx:121:203568
+3. agent calls the contract WITH the grant  -> ALLOWED
+
+Summary: ungranted=ALLOWED  granted=ALLOWED
+```
+
+The grant document is real, scoped to one contract and one function, and
+revocable. It is **not** what lets the agent call this contract, and no slide
+should say it is. Had the script issued the grant first and only tested the
+success path, it would have shown "granted → works" and proved nothing.
+
+What actually constrains this agent is unchanged and worth saying plainly: the
+two-tool allowlist, `policyService.ts`, and the enclave rule.
+
+### 2. The assistant's identity is now the one in the evidence
+
+With `T3N_AGENT_KEY` set, the adapter authenticates as the assistant and
+executes the contract with it:
+
+```
+before  agent_did did:t3n:d8cc263e…   (the tenant — the operator)
+after   agent_did did:t3n:82ae29ec…   (the assistant)
+```
+
+The contract returns `calling_did`, the DID the **enclave** saw calling it, and
+`authorize` refuses when that disagrees with the DID this process believes it
+authenticated as. So `agent_did` is cross-checked against Terminal 3's own view
+rather than asserted by our server. Confirm latency locally: **1.12 s**.
+
+### 3. The agent is publicly registered — but the ledger still says `human`
+
+`scripts/t3n/register-agent-card.mts` publishes an ERC-8004 registration card,
+world-readable without any key:
+
+```
+GET https://cn-api.sg.testnet.t3n.terminal3.io/api/agent-card/did:t3n:82ae29ec…
+{"type":"https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
+ "name":"ParcelGuard Assistant", …}
+```
+
+The card claims nothing this project cannot back: no A2A or MCP endpoint,
+because there is none, and no `supportedTrust: ["tee-attestation"]`, because
+the attestation behind this identity is unverified.
+
+**It did not change `caller_type`.** A call made after publishing is still
+logged `human`. The ledger's `caller_type` comes from an *agent-registry*
+check, and that record is written by `create-agent` on
+`tee:organisation/contracts`, which requires an organisation and admin rights
+on it. Probed directly:
+
+```
+listAgents({orgDid: <tenant did>})
+  -> OrgPolicyNotInitialised: org policy is not initialised for this organisation
+```
+
+So a **self-claimed key from the claim page and an org-provisioned agent are
+two different mechanisms**, and only the second produces `caller_type: agent`.
+The docs read as though claiming a second key is the whole story; it is not.
+Closing this needs an initialised organisation, which is not self-serve.
+
+Credit balances at the time of writing — neither identity is near exhaustion,
+which is the failure mode that would look like an outage mid-demo:
+
+```
+tenant  17,939,162,668 available
+agent   19,879,938,784 available   (separate balance, as documented)
+```
 
 ## Not done / blocked
 
-- **`AGENT_KEY` is not available yet**, so nothing in Task 12 exercises a
-  separate agent identity. The ledger currently records every call as
-  `caller_type: human`, `actor` = the tenant.
-- **The ledger's `caller_type` comes from an agent-registry check on the
-  actor**, so a bare second key may still report `human` until the agent is
-  registered (agent card, per `docs/terminal3/register-agent.md`). Whether
-  registration is needed for `caller_type: agent` is untested.
+- **`caller_type: agent` is unreachable** without an initialised organisation.
+  See above; this is a platform boundary, not a missing call.
+- **The agent grant is decorative for this contract.** Making it load-bearing
+  would mean giving the contract an egress import it does not need, purely so
+  the grant has something to gate — worse than leaving it honest.
 - **Attestation still unverified** — unchanged, and nobody has asked Terminal 3
   devrel about the malformed testnet manifest.
+- **The DID document is minimal.** `GET /api/did/<did>` returns only
+  `@context` and `id` — no `verificationMethod`, no `AgentService` endpoint,
+  where `register-agent.md` shows both. Not investigated.
 - **The contract version is pinned in two places** — `CONTRACT_VERSION` in
   `terminal3Adapter.ts` and the registered `tail@version`. Deliberate: the app
   cannot execute a version nobody deployed. Bumping means re-registering *and*
@@ -149,7 +218,14 @@ one identity used twice demonstrates nothing.
 - **Rollback is still one variable.** `TERMINAL3_MODE=mock` skips the SDK, the
   contract, and the WASM load entirely.
 - **`npx tsx scripts/t3n/activity.mts`** is the thing to show if anyone asks
-  whether the evidence is real: it is Terminal 3's record, not ours.
+  whether the evidence is real: it is Terminal 3's record, not ours. It prints
+  the credit balance first, because an exhausted balance fails like an outage.
+- **The agent card is the one publicly verifiable artefact.** Anyone can fetch
+  it with no key and no account:
+  `curl https://cn-api.sg.testnet.t3n.terminal3.io/api/agent-card/did:t3n:82ae29ec8c2ad3ba36093db525795a594342a968`
+- **Two keys now exist.** `T3N_API_KEY` owns the contract; `T3N_AGENT_KEY` is
+  the assistant. Neither is in the repo. The adapter refuses to start if they
+  are equal.
 - **Rebuilding the contract** needs the Rust toolchain: `rustup target add
   wasm32-wasip2`, then `cargo build --target wasm32-wasip2 --release` in
   `contracts/parcelguard-authz`. Windows needs the MSVC C++ build tools for

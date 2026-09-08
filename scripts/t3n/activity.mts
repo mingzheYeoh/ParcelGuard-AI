@@ -51,6 +51,20 @@ const t3n = new T3nClient({
 await t3n.handshake();
 await t3n.authenticate(createEthAuthInput(address));
 
+// Credit balance first: an agent identity's credits are separate from its
+// tenant's and start at zero, so an exhausted balance is a demo-killing
+// failure mode that looks like an outage.
+try {
+  const usage = await (
+    t3n as unknown as { getUsage: (o?: unknown) => Promise<{ balance?: Record<string, unknown> }> }
+  ).getUsage({ limit: 1 });
+  console.log(`balance: ${JSON.stringify(usage.balance)}
+`);
+} catch (err) {
+  console.log(`balance unavailable: ${err instanceof Error ? err.message : String(err)}
+`);
+}
+
 const limit = Number(process.argv[2] ?? 10);
 const report = await (
   t3n as unknown as { getActivityLog: (o: unknown) => Promise<{ entries: Record<string, unknown>[] }> }
