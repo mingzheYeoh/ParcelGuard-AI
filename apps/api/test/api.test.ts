@@ -89,6 +89,21 @@ describe('session boundary', () => {
     expect(response.json().data).toEqual({ api: 'ok', model: 'mock', terminal3: 'mock' });
   });
 
+  it('reports a malformed request body as the client fault it is', async () => {
+    // A JSON content-type with no body is a client mistake. Fastify already
+    // classifies it 400; the handler used to drop that and answer 500
+    // INTERNAL_ERROR, which blames the server for the caller's request and
+    // pollutes error monitoring with faults that are not ours.
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/demo/session',
+      headers: { 'content-type': 'application/json' },
+      payload: '',
+    });
+    expect(response.statusCode).toBe(422);
+    expect(errorEnvelopeSchema.parse(response.json()).error.code).toBe('INVALID_INPUT');
+  });
+
   it('accepts a mutation from the deployment own Vercel hostnames', async () => {
     // Every Preview has its own hostname, so a fixed APP_ORIGIN rejected the
     // Preview UI's own requests. The allowed set is derived per deployment.

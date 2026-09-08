@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import cookie from '@fastify/cookie';
 import { config } from './config.js';
-import { ApiError } from './http/errors.js';
+import { ApiError, apiError } from './http/errors.js';
 import { assertOrigin, registerRoutes } from './routes/index.js';
 import {
   createModelAdapter,
@@ -63,6 +63,22 @@ export function buildApp(
       }
       reply.status(error.status).send({
         error: { code: error.code, message: error.message, retryable: error.retryable },
+        request_id: request.id,
+      });
+      return;
+    }
+
+    // Fastify classifies its own body-parsing and validation failures as 4xx
+    // (empty JSON body, malformed JSON, unsupported media type). Those are the
+    // caller's fault, so answering INTERNAL_ERROR would blame the server and
+    // bury real faults in the logs. The envelope has no 400 code; INVALID_INPUT
+    // is the vocabulary for "your request was not usable" (PLAN.md §7.6).
+    const status = (error as { statusCode?: number }).statusCode ?? 500;
+    if (status >= 400 && status < 500) {
+      request.log.warn({ err: error }, 'malformed request');
+      const invalid = apiError('INVALID_INPUT', 'The request could not be read');
+      reply.status(invalid.status).send({
+        error: { code: invalid.code, message: invalid.message, retryable: invalid.retryable },
         request_id: request.id,
       });
       return;
