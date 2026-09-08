@@ -151,8 +151,17 @@ const CASES = [
       if (e.source === 'local') return `mock mode: source=local (expected against a live deploy)`;
       if (e.source !== 'terminal3') throw new Error(`source ${e.source}`);
       if (!e.agent_did?.startsWith('did:t3n:')) throw new Error(`agent_did ${e.agent_did}`);
-      if (e.verified !== false) throw new Error('verified must be false until attestation pins');
-      return `${e.agent_did.slice(0, 22)}… ref=${e.provider_reference ?? 'null'} verified=${e.verified}`;
+      if (!e.provider_reference?.startsWith('t3n:')) {
+        throw new Error(`provider_reference ${e.provider_reference} — the contract did not execute`);
+      }
+      // `verified` reflects whether the session pinned Terminal 3's signed
+      // manifest, which depends on the platform and the SDK version — not on
+      // anything this codebase guarantees. Assert that it is a real boolean
+      // and report it; asserting a fixed value here once encoded "attestation
+      // is broken today" as an invariant, and this case started failing the
+      // day it was fixed.
+      if (typeof e.verified !== 'boolean') throw new Error(`verified is ${typeof e.verified}`);
+      return `${e.agent_did.slice(0, 22)}… ref=${e.provider_reference} verified=${e.verified}`;
     },
   },
   {
