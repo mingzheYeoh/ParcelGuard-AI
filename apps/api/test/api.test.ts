@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import {
   CUSTOMER_OTHER_ID,
@@ -86,6 +86,41 @@ describe('session boundary', () => {
     const response = await app.inject({ method: 'GET', url: '/api/v1/health' });
     expect(response.statusCode).toBe(200);
     expect(response.json().data).toEqual({ api: 'ok', model: 'mock', terminal3: 'mock' });
+  });
+
+  it('accepts a mutation from the deployment own Vercel hostnames', async () => {
+    // Every Preview has its own hostname, so a fixed APP_ORIGIN rejected the
+    // Preview UI's own requests. The allowed set is derived per deployment.
+    vi.stubEnv('VERCEL_URL', 'parcel-guard-abc123.vercel.app');
+    vi.stubEnv('VERCEL_BRANCH_URL', 'parcel-guard-git-task-9.vercel.app');
+    vi.stubEnv('VERCEL_PROJECT_PRODUCTION_URL', 'parcel-guard-ai.vercel.app');
+    const cookie = await startSession();
+
+    for (const origin of [
+      'https://parcel-guard-abc123.vercel.app',
+      'https://parcel-guard-git-task-9.vercel.app',
+      'https://parcel-guard-ai.vercel.app',
+      'http://localhost:5173',
+    ]) {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/v1/conversations',
+        headers: { cookie, origin },
+        payload: {},
+      });
+      expect(response.statusCode, `origin ${origin}`).toBe(200);
+    }
+
+    // A lookalike on the same suffix is still refused: a wildcard would let
+    // any page hosted on vercel.app forge authenticated requests.
+    const impostor = await app.inject({
+      method: 'POST',
+      url: '/api/v1/conversations',
+      headers: { cookie, origin: 'https://parcel-guard-attacker.vercel.app' },
+      payload: {},
+    });
+    expect(impostor.statusCode).toBe(401);
+    vi.unstubAllEnvs();
   });
 
   it('refuses a mutation from a foreign origin', async () => {

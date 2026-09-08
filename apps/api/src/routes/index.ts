@@ -189,11 +189,13 @@ export function registerRoutes(app: FastifyInstance, deps: RouteDeps): void {
  * cookie is refused before it reaches a handler. The contract has no dedicated
  * CSRF code, so this reports SESSION_REQUIRED: from the caller's perspective
  * the session was not honoured, which is exactly what happened.
+ *
+ * The allowed set is derived per deployment — see config.allowedOrigins().
  */
 export function assertOrigin(request: FastifyRequest, _reply: FastifyReply): void {
   if (request.method === 'GET' || request.method === 'HEAD') return;
   const origin = request.headers.origin;
-  if (origin && origin !== config.appOrigin()) {
+  if (origin && !config.allowedOrigins().includes(origin)) {
     throw apiError('SESSION_REQUIRED', 'Request origin is not allowed');
   }
 }
