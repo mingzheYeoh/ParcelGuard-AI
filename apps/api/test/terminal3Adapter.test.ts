@@ -10,7 +10,7 @@ import {
  * The connect step is injected, so these assert what the adapter *claims*
  * about a session without loading the SDK's WASM component. Whether Terminal 3
  * itself works is proved by the preflight and the live confirm recorded in
- * docs/handoffs/task-8.md.
+ * docs/DEMO.md.
  */
 
 const DID = 'did:t3n:d8cc263e050eb3697ddf0cdf03a995e388a5aaba';

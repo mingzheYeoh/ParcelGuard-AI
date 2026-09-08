@@ -39,6 +39,7 @@ const customerDisplayNames: Record<string, string> = {
 const addressOwnership: Record<keyof typeof addressFixtures, string> = {
   addr_alex_home: CUSTOMER_ALEX_ID,
   addr_alex_office: CUSTOMER_ALEX_ID,
+  addr_alex_parents: CUSTOMER_ALEX_ID,
   addr_other_home: CUSTOMER_OTHER_ID,
 };
 

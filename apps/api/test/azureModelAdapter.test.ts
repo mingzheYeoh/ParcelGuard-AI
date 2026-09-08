@@ -6,7 +6,7 @@ import { createAzureModelAdapter } from '../src/adapters/azureModelAdapter.js';
  * Unit tests for the Azure adapter's request shaping, response parsing and
  * failure mapping. `fetch` is stubbed: these assert how we treat the
  * provider's answers, not that Azure works — that is the five-journey run
- * recorded in docs/handoffs/task-7.md.
+ * verified against the deployed function; see docs/DEMO.md.
  */
 
 const ENV = {

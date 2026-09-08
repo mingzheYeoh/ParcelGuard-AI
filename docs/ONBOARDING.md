@@ -42,10 +42,10 @@ Optional preflights: `node scripts/preflight/azure-smoke.mjs`, `npx tsx scripts/
 
 ## Workflow
 
-1. Pick an unclaimed task from TASKS.md §3 whose dependencies are accepted (check `docs/handoffs/`). Announce it in the team channel to avoid two people on one task.
+1. Pick an unclaimed task from TASKS.md §3 whose dependencies are accepted. Announce it in the team channel to avoid two people on one task.
 2. Branch `task-N-<slug>` from `main`. Stay inside the file ownership of TASKS.md §4.2.
 3. Open a PR early (draft is fine). The Vercel bot posts a Preview URL — from Task 6 onward it exercises the real function; before that it only proves the build.
-4. Finish by writing `docs/handoffs/task-N.md` (template in TASKS.md §5) with commands actually run and their results.
+4. Finish by recording, in the PR description, the commands you actually ran and their real results — including anything that did not work. The handoff template in TASKS.md §5 is a good shape for it.
 5. Request review from the owner; the owner merges.
 
 ## Things collaborators cannot do (ask the owner)

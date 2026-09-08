@@ -4,7 +4,7 @@
  *
  * Source of truth: PLAN.md §6 (data/sessions) and §7 (API contract v1).
  * Frozen after Task 2 per TASKS.md §2.3 — changes go through
- * docs/handoffs/*.md "Contract change requests" + a PLAN.md §7 update in the
+ * a "Contract change request" in the PR + a PLAN.md §7 update in the
  * same commit (TASKS.md §4.3).
  */
 import { z } from 'zod';

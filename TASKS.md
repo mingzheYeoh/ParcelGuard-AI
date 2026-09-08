@@ -1,5 +1,14 @@
 # TASKS — ParcelGuard AI delivery runbook (Vercel edition)
 
+> **Status: complete.** Tasks 0–11 shipped, plus a Task 12 that added the
+> protected TEE contract. This file is kept because the code cites its rules
+> (`TASKS.md §2 rule 5`, `Task 8 item 1`, …) — not as work still to do.
+>
+> The per-task handoffs it asks for lived in `docs/handoffs/`. Their still-live
+> content is now in [README.md](README.md) and [docs/DEMO.md](docs/DEMO.md); the
+> originals remain in git history. `design-reference/` was removed once the UI
+> it guided was built.
+
 > Version 1.0 · Date: 2026-09-07 · Language: English
 > Companion documents: PLAN.md (business scope + API contract), Design.md (visual/interaction spec).
 > Audience: the human owner and every coding agent working on this repository.

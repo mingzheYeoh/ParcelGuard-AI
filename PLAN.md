@@ -1,5 +1,12 @@
 # PLAN — ParcelGuard AI
 
+> **Status: built.** This document is the specification the code was written
+> against, and the code still cites its section numbers — keep it. Passages
+> that instruct an agent to produce `docs/handoffs/…` or to read
+> `design-reference/` describe the original build process; both are gone
+> (see the note at the top of TASKS.md). For how to run and demo what was
+> built, see [README.md](README.md) and [docs/DEMO.md](docs/DEMO.md).
+
 > AI Tinkerers Kuala Lumpur × Terminal 3 Agent Dev Kit Build Night
 > Version: 1.2 · Date: 2026-09-07 · Language: English
 > Product: an AI order-support assistant with enforced permissions and understandable action records.
