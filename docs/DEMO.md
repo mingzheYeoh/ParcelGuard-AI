@@ -99,11 +99,11 @@ Open the address-change row in **Recent actions**.
 
 > "Source: Terminal 3. That's the DID of the agent identity that authorized it — the assistant's own identity, not the operator's. The provider reference is the contract id and sequence number Terminal 3 assigned to the execution.
 >
-> And it says **Not verified** — because the TEE attestation could not be checked today. We could have hidden that. We didn't."
+> And it says **Verified** — the session is pinned to the cluster's signed trust manifest. That pin checks RTMR3, which is the weaker of the two measurements Terminal 3 defines; RTMR1 is not published on testnet yet. So: attested, not fully attested.""
 
 ### 1:50 — Close
 
-> "An authenticated agent identity authorized this change. The TEE attestation behind that identity could not be verified today. Everything else you saw is real."
+> "An authenticated agent identity authorized this change, inside an enclave whose measurement we pinned against Terminal 3's signed manifest. That pin covers RTMR3, not the stronger RTMR1, which testnet does not publish yet. Everything you saw is real, and that is the one caveat."
 
 ---
 
@@ -231,7 +231,7 @@ AGENT_KEY=0x… npx tsx scripts/t3n/register-agent-card.mts
 | Is the database real? | Neon Postgres | order versions increment across confirms |
 | Is Terminal 3 real? | Real session, real DID, real contract execution | the public agent card; `activity.mts` |
 | Is the enclave decision real? | Yes — contract 928, `z:…:parcelguard-authz` | `deploy-contract.mts --skip-register` |
-| Is the attestation verified? | **No.** Say so. | the UI already renders "Not verified" |
+| Is the attestation verified? | **Pinned against the signed manifest — RTMR3 only.** | the UI renders "Verified"; say what it covers |
 
 ---
 
@@ -239,7 +239,14 @@ AGENT_KEY=0x… npx tsx scripts/t3n/register-agent-card.mts
 
 Each of these was tested and came back negative. Saying otherwise turns a solid demo into a false one.
 
-**"TEE-verified"** — `evidence.verified` is `false`. `fetchTrustedManifest('testnet')` fails: SDK 5.x requires `rtmr1_allowlist`, testnet publishes only `rtmr3_allowlist`. The connection falls back to `unsafe_trust_server`, which skips attestation pinning. If Terminal 3 publishes a fixed manifest, this flips to true with no code change.
+**"Fully TEE-verified"** — the manifest *is* pinned and `evidence.verified` is `true`, but the pin covers **RTMR3 only**. Testnet publishes no `rtmr1_allowlist`, and the SDK's own types call that one "the real rootfs-integrity signal". Say "attested against the signed manifest, RTMR3", not "TEE-verified" unqualified.
+
+This also depends on the SDK version, which is worth knowing before someone upgrades it: **5.2.x accepts an rtmr3-only manifest; 5.3+ requires rtmr1 and rejects testnet's outright**, falling back to `unsafe_trust_server` — no attestation at all. The dependency is pinned to `5.2.0` for exactly this reason. Verified by installing both and calling `fetchTrustedManifest('testnet')`:
+
+```
+5.2.0  -> PINNED MANIFEST
+5.12.0 -> Trust manifest at …/api/trust-manifest is malformed.
+```
 
 **"The agent grant restricts what the assistant can do"** — it does not, for this contract. Terminal 3 enforces grants at the egress boundary, and `parcelguard-authz` makes no outbound calls. Measured:
 
