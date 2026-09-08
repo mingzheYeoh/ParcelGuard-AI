@@ -26,6 +26,9 @@ importers:
       '@parcelguard/contracts':
         specifier: workspace:contracts@*
         version: link:../../packages/contracts
+      '@terminal3/t3n-sdk':
+        specifier: 5.10.0
+        version: 5.10.0(typescript@7.0.2)
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(postgres@3.4.9)

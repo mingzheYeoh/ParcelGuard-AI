@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
-import type { Order, Proposal, ProposalResult } from '@parcelguard/contracts';
+import type { Evidence, Order, Proposal, ProposalResult } from '@parcelguard/contracts';
 import type { Database } from '../db/index.js';
 import { conversations, idempotencyKeys, proposals } from '../db/schema.js';
 import { PROPOSAL_TTL_MS } from '../config.js';
-import { apiError, notFound } from '../http/errors.js';
+import { ApiError, apiError, notFound } from '../http/errors.js';
 import { requireUnexpired } from './policyService.js';
 import { applyAddressChange } from '../repositories/orderRepository.js';
 import { recordAction } from './auditService.js';
@@ -174,10 +174,40 @@ export async function confirmProposal(
     throw apiError('REQUEST_IN_PROGRESS', 'This confirmation is already being processed');
   }
 
-  const evidence = await terminal3.authorize({
-    orderId: proposal.orderId,
-    addressRef: proposal.targetAddressRef,
-  });
+  // The proposal is now claimed `executing`. Any throw from here must leave a
+  // terminal status behind, or the proposal is stuck at 409 forever — nothing
+  // clears it, because a Vercel Function does no background work.
+  let evidence: Evidence;
+  try {
+    evidence = await terminal3.authorize({
+      orderId: proposal.orderId,
+      addressRef: proposal.targetAddressRef,
+    });
+  } catch (cause) {
+    // PLAN.md §8.4: after dispatch an uncertain outcome is outcome_unknown,
+    // not a retryable failure. A clean refusal before dispatch is a failure.
+    const unknown = cause instanceof ApiError && cause.code === 'ACTION_OUTCOME_UNKNOWN';
+    await db
+      .update(proposals)
+      .set({ status: unknown ? 'outcome_unknown' : 'failed', updatedAt: nowIso() })
+      .where(eq(proposals.id, proposalId));
+    await recordAction(db, {
+      conversationId: proposal.conversationId,
+      type: 'address_change',
+      outcome: unknown ? 'outcome_unknown' : 'failed',
+      reasonCode: cause instanceof ApiError ? cause.code : 'TERMINAL3_UNAVAILABLE',
+      summary: unknown
+        ? `Authorization result for ${proposal.orderId} is unconfirmed`
+        : `Authorization for ${proposal.orderId} was not granted`,
+      evidence: {
+        source: 'terminal3',
+        agent_did: null,
+        provider_reference: null,
+        verified: false,
+      },
+    });
+    throw cause;
+  }
 
   const order = await applyAddressChange(db, {
     orderId: proposal.orderId,
