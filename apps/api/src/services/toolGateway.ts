@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { ChatTurnCard } from '@parcelguard/contracts';
+import type { ChatTurnCard, ErrorCode } from '@parcelguard/contracts';
 import type { Database } from '../db/index.js';
 import { ApiError } from '../http/errors.js';
 import type { ToolCall, ToolResult } from '../adapters/index.js';
@@ -159,6 +159,28 @@ export async function executeTool(
 }
 
 /**
+ * Customer-facing copy for a denial card, per Design.md §8.3. The ApiError
+ * message is written for a REST caller ("Order not available"); using it as
+ * the card description made the card repeat its own title and drop the wording
+ * the design specifies. The frontend's MSW handlers already used these exact
+ * strings, so live and mock now read identically.
+ */
+const DENIAL_COPY: Partial<Record<ErrorCode, { title: string; description: string }>> = {
+  ORDER_UNAVAILABLE: {
+    title: 'Order not available',
+    description: "This order isn't available in your account.",
+  },
+  RESOURCE_UNAVAILABLE: {
+    title: 'Not available',
+    description: "That isn't available in your account.",
+  },
+  ORDER_NOT_EDITABLE: {
+    title: 'Shipped orders cannot be updated',
+    description: "This order has already shipped, so its delivery address can't be changed.",
+  },
+};
+
+/**
  * Turns a policy exception into a 200-with-denial-card turn. PLAN.md §7.6:
  * a chat denial that the system handled successfully is not an HTTP error —
  * only direct REST calls return the status code.
@@ -184,18 +206,23 @@ async function denial(
     evidence: LOCAL_EVIDENCE,
   });
 
+  const copy = DENIAL_COPY[input.error.code] ?? {
+    title: input.fallbackTitle,
+    description: input.error.message,
+  };
+
   return {
     result:
       input.type === 'order_lookup'
-        ? { name: 'get_order', ok: false, reason: input.error.message }
-        : { name: 'propose_address_change', ok: false, reason: input.error.message },
+        ? { name: 'get_order', ok: false, reason: copy.description }
+        : { name: 'propose_address_change', ok: false, reason: copy.description },
     cards: [
       {
         type: 'action_result',
         outcome: 'denied',
         reason_code: input.error.code,
-        title: input.fallbackTitle,
-        description: input.error.message,
+        title: copy.title,
+        description: copy.description,
         action_id: action.id,
       },
     ],
