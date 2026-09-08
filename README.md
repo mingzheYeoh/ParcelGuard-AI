@@ -33,7 +33,7 @@ The enclave has **no access to this database**. It cannot confirm the order exis
 - **The agent-auth grant enforces nothing here.** Terminal 3 gates grants at the egress boundary and this contract makes no outbound calls. Measured by calling as an *ungranted* agent before issuing the grant: allowed either way. What constrains the assistant is the two-tool allowlist, `policyService.ts`, and the enclave rule.
 - **The ledger says `caller_type: human`.** That field reads an agent-registry record written by `create-agent` on `tee:organisation/contracts`, which requires an organisation this tenant does not have.
 
-Full reasoning and the commands that produced each result: **[docs/DEMO.md](docs/DEMO.md) §6**.
+Each of those is a measured result, not caution. The commands that produced them are in this file under **Running it**; the phrasing to use when presenting is in [docs/DEMO.md](docs/DEMO.md).
 
 ---
 
@@ -91,7 +91,7 @@ Rebuilding the contract needs `rustup target add wasm32-wasip2`, then `cargo bui
 | `scripts/` | the 14 end-to-end checks and the Terminal 3 tools |
 | [PLAN.md](PLAN.md) | scope, journeys, data model, API contract, acceptance criteria |
 | [Design.md](Design.md) | tokens, layout, components, interaction |
-| [docs/DEMO.md](docs/DEMO.md) | **how to run the demo**, the 14 checks, what not to claim |
+| [docs/DEMO.md](docs/DEMO.md) | **3-minute recording script** — every step, the exact lines, and what not to claim |
 | [docs/ONBOARDING.md](docs/ONBOARDING.md) | local setup and PR workflow for contributors |
 | `docs/terminal3/` | vendored Terminal 3 ADK reference |
 
