@@ -107,6 +107,11 @@ export function useWorkspace() {
     onSuccess: (turn) => {
       applyTurn(turn);
       void queryClient.invalidateQueries({ queryKey: ['actions', conversationId] });
+      // A turn is the only proof the model adapter is reachable: mode() reports
+      // `live` only after a real call succeeds. Without this the panel keeps
+      // showing whatever was true at page load — always "Not connected", since
+      // nothing had been called yet (Design.md §12).
+      void queryClient.invalidateQueries({ queryKey: ['bootstrap'] });
     },
   });
 
@@ -151,6 +156,9 @@ export function useWorkspace() {
       setProposalStatuses((current) => ({ ...current, [result.proposal_id]: result.status }));
       void queryClient.invalidateQueries({ queryKey: ['orders'] });
       void queryClient.invalidateQueries({ queryKey: ['actions', conversationId] });
+      // Confirm is the only path that opens a Terminal 3 session, so it is the
+      // only thing that can move that row off "Not connected".
+      void queryClient.invalidateQueries({ queryKey: ['bootstrap'] });
     },
     onError: (error, proposalId) => {
       // The card must show what the server said, not a guess.
